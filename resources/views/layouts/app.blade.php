@@ -36,6 +36,9 @@
             --accent: #38bdf8;
             --text-main: #e5e7eb;
             --text-muted: #9ca3af;
+
+            --raynet-blue: #1d4ed8;
+            --raynet-blue-bg: rgba(37,99,235,0.25);
         }
 
         * {
@@ -161,6 +164,7 @@
 <body>
 <div class="site-shell">
 
+    {{-- NAVIGATION BAR --}}
     <nav class="navbar">
         <div class="nav-inner">
             <div class="brand-block">
@@ -169,20 +173,22 @@
             </div>
 
             <div class="nav-links">
-    <a href="{{ route('home') }}" class="{{ request()->routeIs('home') ? 'active' : '' }}">Home</a>
-    <a href="{{ route('about') }}" class="{{ request()->routeIs('about') ? 'active' : '' }}">About</a>
-    <a href="{{ route('event-support') }}" class="{{ request()->routeIs('event-support') ? 'active' : '' }}">Event Support</a>
-    <a href="{{ route('request-support') }}" class="{{ request()->routeIs('request-support') ? 'active' : '' }}">Request Support</a>
-    <a href="{{ route('training') }}" class="{{ request()->routeIs('training') ? 'active' : '' }}">Training</a>
-    <a href="{{ route('members') }}" class="{{ request()->routeIs('members') ? 'active' : '' }}">Members</a>
-</div>
+                <a href="{{ route('home') }}" class="{{ request()->routeIs('home') ? 'active' : '' }}">Home</a>
+                <a href="{{ route('about') }}" class="{{ request()->routeIs('about') ? 'active' : '' }}">About</a>
+                <a href="{{ route('event-support') }}" class="{{ request()->routeIs('event-support') ? 'active' : '' }}">Event Support</a>
+                <a href="{{ route('request-support') }}" class="{{ request()->routeIs('request-support') ? 'active' : '' }}">Request Support</a>
+                <a href="{{ route('training') }}" class="{{ request()->routeIs('training') ? 'active' : '' }}">Training</a>
+                <a href="{{ route('members') }}" class="{{ request()->routeIs('members') ? 'active' : '' }}">Members</a>
+            </div>
         </div>
     </nav>
 
+    {{-- PAGE CONTENT --}}
     <main class="content-wrap">
         @yield('content')
     </main>
 
+    {{-- FOOTER --}}
     <footer class="footer">
         <div class="footer-inner">
             <span>&copy; {{ date('Y') }} Liverpool RAYNET (10/ME/179/). All rights reserved.</span>
@@ -191,7 +197,8 @@
     </footer>
 
 </div>
-{{-- ADMIN BADGE (clickable purple link to dashboard) --}}
+
+{{-- ADMIN BADGE: fixed top-right --}}
 @if (session('is_admin') === true)
     <a href="{{ route('admin.dashboard') }}"
        style="
@@ -218,5 +225,28 @@
         ADMIN
     </a>
 @endif
+
+{{-- MEMBER BADGE: always displayed --}}
+<a href="{{ route('members') }}"
+   style="
+        position: fixed;
+        top: 1rem;
+        right: {{ session('is_admin') === true ? '6rem' : '1rem' }};
+        z-index: 1999;
+        padding: 0.4rem 0.85rem;
+        border-radius: 999px;
+        background: var(--raynet-blue-bg);
+        border: 1px solid var(--raynet-blue);
+        color: #dbeafe;
+        font-weight: 700;
+        font-size: 0.75rem;
+        letter-spacing: 0.05em;
+        text-decoration: none;
+        display: inline-block;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+   ">
+    MEMBER
+</a>
+
 </body>
 </html>
