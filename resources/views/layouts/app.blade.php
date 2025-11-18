@@ -191,5 +191,32 @@
     </footer>
 
 </div>
+{{-- ADMIN BADGE (clickable purple link to dashboard) --}}
+@if (session('is_admin') === true)
+    <a href="{{ route('admin.dashboard') }}"
+       style="
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 2000;
+            padding: 0.4rem 0.85rem;
+            border-radius: 999px;
+            background: linear-gradient(to right, #a855f7, #7e22ce);
+            color: #fff;
+            font-weight: 700;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            text-decoration: none;
+            display: inline-block;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+            border: 1px solid rgba(168,85,247,0.9);
+            transition: transform 0.12s ease, box-shadow 0.12s ease;
+       "
+       onmouseenter="this.style.transform='scale(1.05)'; this.style.boxShadow='0 8px 22px rgba(0,0,0,0.5)';"
+       onmouseleave="this.style.transform='scale(1.0)'; this.style.boxShadow='0 6px 18px rgba(0,0,0,0.35)';"
+    >
+        ADMIN
+    </a>
+@endif
 </body>
 </html>

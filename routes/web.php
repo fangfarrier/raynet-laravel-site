@@ -34,7 +34,21 @@ Route::get('/', function () {
 Route::view('/about', 'pages.about')->name('about');
 Route::view('/event-support', 'pages.event-support')->name('event-support');
 Route::view('/training', 'pages.training')->name('training');
-Route::view('/members', 'pages.members')->name('members');
+
+// MEMBERS DASHBOARD (now dynamic)
+Route::get('/members', function () {
+    $today = Carbon::today();
+
+    $upcoming = Event::with('type')
+        ->where('starts_at', '>=', $today)
+        ->orderBy('starts_at')
+        ->limit(6)
+        ->get();
+
+    return view('pages.members', [
+        'upcomingEvents' => $upcoming,
+    ]);
+})->name('members');
 
 
 // ----------------------
@@ -48,7 +62,7 @@ Route::post('/request-support', [SupportRequestController::class, 'store'])
 
 
 // ----------------------
-// CALENDAR + MONTH ICS
+// CALENDAR
 // ----------------------
 Route::get('/calendar/{year?}/{month?}', [CalendarController::class, 'index'])
     ->name('calendar');
@@ -62,7 +76,7 @@ Route::get('/calendar/{year}/{month}.ics', [CalendarController::class, 'ics'])
 
 
 // ----------------------
-// PUBLIC EVENT LIST
+// EVENT LIST
 // ----------------------
 Route::get('/events', [EventController::class, 'index'])
     ->name('events.index');

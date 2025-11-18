@@ -10,7 +10,7 @@ class EventType extends Model
         'name',
         'slug',
         'sort_order',
-        'colour',      // ✅ new
+        'colour',   // ✅ allow mass assignment of colour
     ];
 
     public function events()

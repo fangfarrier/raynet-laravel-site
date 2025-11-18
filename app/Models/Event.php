@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Event extends Model
 {
+    protected $table = 'events';
+
     protected $fillable = [
         'title',
         'slug',
@@ -19,9 +21,9 @@ class Event extends Model
     ];
 
     protected $casts = [
-        'starts_at'   => 'datetime',
-        'ends_at'     => 'datetime',
-        'is_public'   => 'boolean',
+        'starts_at' => 'datetime',
+        'ends_at'   => 'datetime',
+        'is_public' => 'boolean',
     ];
 
     /**
@@ -33,7 +35,7 @@ class Event extends Model
     }
 
     /**
-     * Nice human-readable event date / date range.
+     * Nice human-readable event date.
      */
     public function displayDate(): string
     {
@@ -41,30 +43,8 @@ class Event extends Model
             return '';
         }
 
-        $start = $this->starts_at;
-        $end   = $this->ends_at;
-
-        // No end time: simple "D j M Y, H:i"
-        if (! $end) {
-            return $start->format('D j M Y, H:i');
-        }
-
-        // Same calendar day: "D j M Y, H:i–H:i"
-        if ($start->toDateString() === $end->toDateString()) {
-            return sprintf(
-                '%s, %s–%s',
-                $start->format('D j M Y'),
-                $start->format('H:i'),
-                $end->format('H:i'),
-            );
-        }
-
-        // Multi-day event: "D j M Y, H:i – D j M Y, H:i"
-        return sprintf(
-            '%s – %s',
-            $start->format('D j M Y, H:i'),
-            $end->format('D j M Y, H:i'),
-        );
+        // Example: Sun 23 Nov 2025, 08:30
+        return $this->starts_at->format('D j M Y, H:i');
     }
 
     /**

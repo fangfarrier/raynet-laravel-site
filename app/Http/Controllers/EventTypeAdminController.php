@@ -8,52 +8,60 @@ use Illuminate\Support\Str;
 
 class EventTypeAdminController extends Controller
 {
-    public function index()
+    /**
+     * List all event types and optionally load one for editing.
+     */
+    public function index(Request $request)
     {
         $types = EventType::orderBy('sort_order')
             ->orderBy('name')
             ->get();
 
-        return view('admin.event-types.index', compact('types'));
-    }
-
-    public function store(Request $request)
-    {
-        $data = $request->validate([
-            'name'       => ['required', 'string', 'max:100'],
-            'sort_order' => ['nullable', 'integer', 'min:0', 'max:9999'],
-            'colour'     => ['nullable', 'string', 'max:7'], // hex like "#2563eb"
-        ]);
-
-        // Normalise colour to "#RRGGBB" if provided
-        $colour = $data['colour'] ?? null;
-
-        if ($colour !== null && $colour !== '') {
-            // strip leading #, cap to 6 chars, then put # back
-            $colour = ltrim($colour, '#');
-            $colour = substr($colour, 0, 6);
-            $colour = '#' . $colour;
-        } else {
-            $colour = null;
+        $editingType = null;
+        if ($request->filled('edit')) {
+            $editingType = EventType::find($request->integer('edit'));
         }
 
-        EventType::create([
-            'name'       => $data['name'],
-            'slug'       => Str::slug($data['name']),
-            'sort_order' => $data['sort_order'] ?? 0,
-            'colour'     => $colour,
-        ]);
+        return view('admin.event-types.index', compact('types', 'editingType'));
+    }
+
+    /**
+     * Store a new event type.
+     */
+    public function store(Request $request)
+    {
+        $data = $this->validatedData($request);
+
+        EventType::create($data);
 
         return redirect()
             ->route('admin.event-types')
             ->with('status', 'Event type created.');
     }
 
+    /**
+     * Update an existing event type.
+     */
+    public function update(Request $request, int $id)
+    {
+        $type = EventType::findOrFail($id);
+
+        $data = $this->validatedData($request, $type);
+
+        $type->update($data);
+
+        return redirect()
+            ->route('admin.event-types')
+            ->with('status', 'Event type updated.');
+    }
+
+    /**
+     * Delete an event type (if unused).
+     */
     public function delete(int $id)
     {
         $type = EventType::findOrFail($id);
 
-        // Optional safety: only allow delete if no events use it
         if ($type->events()->exists()) {
             return redirect()
                 ->route('admin.event-types')
@@ -65,5 +73,39 @@ class EventTypeAdminController extends Controller
         return redirect()
             ->route('admin.event-types')
             ->with('status', 'Event type deleted.');
+    }
+
+    /**
+     * Shared validation + colour normalisation.
+     */
+    protected function validatedData(Request $request, ?EventType $existing = null): array
+    {
+        $data = $request->validate([
+            'name'       => ['required', 'string', 'max:100'],
+            'sort_order' => ['nullable', 'integer', 'min:0', 'max:9999'],
+            'colour'     => ['nullable', 'string', 'max:7'], // "#RRGGBB"
+        ], [], [
+            'name'       => 'name',
+            'sort_order' => 'sort order',
+            'colour'     => 'badge colour',
+        ]);
+
+        // Sort order default
+        $data['sort_order'] = $data['sort_order'] ?? 0;
+
+        // Always regenerate slug from name
+        $data['slug'] = Str::slug($data['name']);
+
+        // Normalise colour to "#RRGGBB" or null
+        $colour = $data['colour'] ?? null;
+        if ($colour !== null && $colour !== '') {
+            $colour = ltrim($colour, '#');
+            $colour = substr($colour, 0, 6);
+            $data['colour'] = '#' . $colour;
+        } else {
+            $data['colour'] = null;
+        }
+
+        return $data;
     }
 }

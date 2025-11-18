@@ -12,9 +12,9 @@ class CalendarController extends Controller
      */
     public function index(?int $year = null, ?int $month = null)
     {
-        // Work out which month we’re showing
         $today = Carbon::today();
 
+        // Determine which month to show
         if ($year === null || $month === null) {
             $currentMonth = $today->copy()->startOfMonth();
         } else {
@@ -24,66 +24,23 @@ class CalendarController extends Controller
         $monthStart = $currentMonth->copy()->startOfMonth();
         $monthEnd   = $currentMonth->copy()->endOfMonth();
 
-        // Grid runs from Monday at/before start, to Sunday at/after end
+        // Calendar grid runs from Monday at/before month start to Sunday at/after month end
         $gridStart = $monthStart->copy()->startOfWeek(Carbon::MONDAY);
         $gridEnd   = $monthEnd->copy()->endOfWeek(Carbon::SUNDAY);
 
-        // Fetch all events that overlap this grid window
+        // Fetch events that overlap this month (single or multi-day)
         $events = Event::with('type')
-            ->where('starts_at', '<=', $gridEnd->copy()->endOfDay())
-            ->where(function ($q) use ($gridStart) {
-                $q->whereNull('ends_at')
-                  ->orWhere('ends_at', '>=', $gridStart->copy()->startOfDay());
+            ->where(function ($q) use ($monthStart, $monthEnd) {
+                $q->whereBetween('starts_at', [$monthStart, $monthEnd])
+                  ->orWhere(function ($q2) use ($monthStart, $monthEnd) {
+                      $q2->whereNotNull('ends_at')
+                         ->where('starts_at', '<=', $monthEnd)
+                         ->where('ends_at', '>=', $monthStart);
+                  });
             })
             ->orderBy('starts_at')
             ->get();
 
-        // Map events onto each day in the grid, including multi-day spans
-        $eventsByDay = [];
-
-        foreach ($events as $event) {
-            $rangeStart = $event->starts_at->copy()->startOfDay();
-            $rangeEnd   = $event->ends_at
-                ? $event->ends_at->copy()->startOfDay()
-                : $rangeStart->copy();
-
-            // Clamp to the visible grid
-            if ($rangeEnd < $gridStart || $rangeStart > $gridEnd) {
-                continue;
-            }
-
-            if ($rangeStart < $gridStart) {
-                $rangeStart = $gridStart->copy();
-            }
-            if ($rangeEnd > $gridEnd) {
-                $rangeEnd = $gridEnd->copy();
-            }
-
-            $cursor = $rangeStart->copy();
-
-            while ($cursor <= $rangeEnd) {
-                $key = $cursor->toDateString();
-
-                if ($rangeStart->equalTo($rangeEnd)) {
-                    $span = 'single';
-                } elseif ($cursor->equalTo($rangeStart)) {
-                    $span = 'start';
-                } elseif ($cursor->equalTo($rangeEnd)) {
-                    $span = 'end';
-                } else {
-                    $span = 'middle';
-                }
-
-                $eventsByDay[$key][] = [
-                    'event' => $event,
-                    'span'  => $span,
-                ];
-
-                $cursor->addDay();
-            }
-        }
-
-        // Build weeks → days structure for the view
         $weeks  = [];
         $cursor = $gridStart->copy();
 
@@ -91,14 +48,26 @@ class CalendarController extends Controller
             $week = [];
 
             for ($i = 0; $i < 7; $i++) {
-                $date = $cursor->copy();
-                $key  = $date->toDateString();
+                $date    = $cursor->copy();
+                $inMonth = $date->month === $currentMonth->month;
+                $isToday = $date->isSameDay($today);
+
+                // Events that cover this day (start on, or span across)
+                $dayEvents = $events->filter(function ($event) use ($date) {
+                    $startDate = $event->starts_at->copy()->startOfDay();
+                    $endDate   = $event->ends_at
+                        ? $event->ends_at->copy()->startOfDay()
+                        : $startDate;
+
+                    return $date->greaterThanOrEqualTo($startDate)
+                        && $date->lessThanOrEqualTo($endDate);
+                });
 
                 $week[] = [
-                    'date'          => $date,
-                    'isCurrentMonth'=> $date->month === $currentMonth->month,
-                    'isToday'       => $date->isSameDay($today),
-                    'events'        => $eventsByDay[$key] ?? [],
+                    'date'      => $date,
+                    'in_month'  => $inMonth,
+                    'is_today'  => $isToday,
+                    'events'    => $dayEvents,
                 ];
 
                 $cursor->addDay();
@@ -110,20 +79,22 @@ class CalendarController extends Controller
         $prevMonth = $currentMonth->copy()->subMonth();
         $nextMonth = $currentMonth->copy()->addMonth();
 
-        return view('calendar.index', [
+        $icsUrl = route('calendar.ics', [
+            'year'  => $currentMonth->format('Y'),
+            'month' => $currentMonth->format('m'),
+        ]);
+
+        return view('calendar', [
             'currentMonth' => $currentMonth,
-            'monthName'    => $currentMonth->format('F'),
-            'year'         => $currentMonth->year,
+            'prevMonth'    => $prevMonth,
+            'nextMonth'    => $nextMonth,
             'weeks'        => $weeks,
-            'prevYear'     => $prevMonth->year,
-            'prevMonth'    => $prevMonth->month,
-            'nextYear'     => $nextMonth->year,
-            'nextMonth'    => $nextMonth->month,
+            'icsUrl'       => $icsUrl,
         ]);
     }
 
     /**
-     * Export the visible month as ICS.
+     * Export the month as a single ICS file containing all events.
      */
     public function ics(int $year, int $month)
     {
@@ -132,10 +103,14 @@ class CalendarController extends Controller
         $monthEnd     = $currentMonth->copy()->endOfMonth();
 
         $events = Event::with('type')
-            ->whereBetween('starts_at', [
-                $monthStart->copy()->startOfDay(),
-                $monthEnd->copy()->endOfDay(),
-            ])
+            ->where(function ($q) use ($monthStart, $monthEnd) {
+                $q->whereBetween('starts_at', [$monthStart, $monthEnd])
+                  ->orWhere(function ($q2) use ($monthStart, $monthEnd) {
+                      $q2->whereNotNull('ends_at')
+                         ->where('starts_at', '<=', $monthEnd)
+                         ->where('ends_at', '>=', $monthStart);
+                  });
+            })
             ->orderBy('starts_at')
             ->get();
 
@@ -150,7 +125,7 @@ class CalendarController extends Controller
         ];
 
         foreach ($events as $event) {
-            $uid     = 'event-' . $event->id . '@' . $domain;
+            $uid     = 'calendar-' . $currentMonth->format('Ym') . '-event-' . $event->id . '@' . $domain;
             $dtStart = $event->starts_at->copy()->utc()->format('Ymd\THis\Z');
             $dtEnd   = $event->ends_at
                 ? $event->ends_at->copy()->utc()->format('Ymd\THis\Z')
@@ -191,11 +166,9 @@ class CalendarController extends Controller
 
         $body = implode("\r\n", $lines) . "\r\n";
 
-        $filename = sprintf('liverpool-raynet-%04d-%02d.ics', $year, $month);
-
         return response($body, 200, [
             'Content-Type'        => 'text/calendar; charset=utf-8',
-            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+            'Content-Disposition' => 'attachment; filename="calendar-' . $currentMonth->format('Y-m') . '.ics"',
         ]);
     }
 

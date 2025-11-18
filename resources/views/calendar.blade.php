@@ -3,19 +3,7 @@
 @section('title', 'Calendar')
 
 @section('content')
-@extends('layouts.app')
 
-@section('title', 'Calendar')
-
-@section('content')
-    <style>
-        /* Show the hover card when the wrapper is hovered */
-        .lr-calendar-event-pill:hover .hover-card {
-            display: block;
-        }
-    </style>
-
-    {{-- Header + month navigation --}}
     @php
         $prevUrl = route('calendar', [
             'year'  => $prevMonth->format('Y'),
@@ -27,6 +15,7 @@
         ]);
     @endphp
 
+    {{-- Header + month navigation --}}
     <div style="display:flex; justify-content:space-between; align-items:flex-end; gap:1rem; margin-bottom:1rem;">
         <div>
             <h1 style="margin:0; color:#e5e7eb;">
@@ -89,9 +78,9 @@
                 @foreach ($week as $day)
                     @php
                         /** @var \Illuminate\Support\Carbon $date */
-                        $date    = $day['date'];
-                        $inMonth = $day['in_month'];
-                        $isToday = $day['is_today'];
+                        $date      = $day['date'];
+                        $inMonth   = $day['in_month'];
+                        $isToday   = $day['is_today'];
                         $dayEvents = $day['events'];
                     @endphp
 
@@ -117,14 +106,16 @@
                             @endif
                         </div>
 
-                                                {{-- Events in this day --}}
+                        {{-- Events for this day --}}
                         @foreach ($dayEvents as $event)
                             @php
                                 $type       = $event->type;
                                 $baseColour = $type && $type->colour ? $type->colour : '#22c55e';
                             @endphp
 
-                            <div class="lr-calendar-event-pill" style="position:relative; margin-top:0.22rem;">
+                            <div style="position:relative; margin-top:0.22rem;"
+                                 onmouseenter="this.querySelector('.hover-card')?.style.setProperty('display','block')"
+                                 onmouseleave="this.querySelector('.hover-card')?.style.setProperty('display','none')">
                                 <a href="{{ $event->url() }}"
                                    style="
                                        display:inline-flex;
@@ -177,7 +168,7 @@
                                     @endif
                                     @if ($event->description)
                                         <div style="color:#6b7280; max-height:3.5rem; overflow:hidden; text-overflow:ellipsis;">
-                                            {{ \Illuminate\Support\Str::limit($event->description, 120) }}
+                                            {{ $event->description }}
                                         </div>
                                     @endif
                                 </div>
