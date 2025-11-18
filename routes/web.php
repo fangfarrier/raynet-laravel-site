@@ -7,6 +7,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\EventAdminController;
 use App\Http\Controllers\EventTypeAdminController;
 use App\Http\Controllers\EventController;
+use App\Http\Controllers\MembersController;
 use App\Models\Event;
 use Illuminate\Support\Carbon;
 
@@ -35,20 +36,11 @@ Route::view('/about', 'pages.about')->name('about');
 Route::view('/event-support', 'pages.event-support')->name('event-support');
 Route::view('/training', 'pages.training')->name('training');
 
-// MEMBERS DASHBOARD (now dynamic)
-Route::get('/members', function () {
-    $today = Carbon::today();
-
-    $upcoming = Event::with('type')
-        ->where('starts_at', '>=', $today)
-        ->orderBy('starts_at')
-        ->limit(6)
-        ->get();
-
-    return view('pages.members', [
-        'upcomingEvents' => $upcoming,
-    ]);
-})->name('members');
+/**
+ * Reminder to self: Members now use a controller so I can pass data in.
+ */
+Route::get('/members', [MembersController::class, 'index'])
+    ->name('members');
 
 
 // ----------------------
@@ -76,17 +68,16 @@ Route::get('/calendar/{year}/{month}.ics', [CalendarController::class, 'ics'])
 
 
 // ----------------------
-// EVENT LIST
+// PUBLIC EVENTS
 // ----------------------
+/**
+ * Reminder to self: List view of events for embedding and member hub links.
+ */
 Route::get('/events', [EventController::class, 'index'])
     ->name('events.index');
 
-
-// ----------------------
-// PUBLIC EVENT DETAIL + ICS
 // /events/{year}/{month}/{slug}
 // /events/{year}/{month}/{slug}.ics
-// ----------------------
 Route::get('/events/{year}/{month}/{slug}', [EventController::class, 'show'])
     ->where([
         'year'  => '[0-9]{4}',
@@ -143,6 +134,9 @@ Route::middleware('admin')->group(function () {
 
     Route::post('/admin/event-types', [EventTypeAdminController::class, 'store'])
         ->name('admin.event-types.store');
+
+    Route::post('/admin/event-types/{id}', [EventTypeAdminController::class, 'update'])
+        ->name('admin.event-types.update');
 
     Route::get('/admin/event-types/{id}/delete', [EventTypeAdminController::class, 'delete'])
         ->name('admin.event-types.delete');
