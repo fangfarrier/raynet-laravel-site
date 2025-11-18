@@ -7,10 +7,11 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\EventAdminController;
 use App\Http\Controllers\EventTypeAdminController;
 use App\Http\Controllers\EventController;
-use App\Http\Controllers\MembersController;
+use App\Http\Controllers\MemberDashboardController;
+use App\Http\Controllers\OperatorAdminController;
+use App\Http\Controllers\RoleAdminController;
 use App\Models\Event;
 use Illuminate\Support\Carbon;
-
 
 // ----------------------
 // HOME – with next event
@@ -36,11 +37,8 @@ Route::view('/about', 'pages.about')->name('about');
 Route::view('/event-support', 'pages.event-support')->name('event-support');
 Route::view('/training', 'pages.training')->name('training');
 
-/**
- * Reminder to self: Members now use a controller so I can pass data in.
- */
-Route::get('/members', [MembersController::class, 'index'])
-    ->name('members');
+// Members dashboard now uses a controller
+Route::get('/members', MemberDashboardController::class)->name('members');
 
 
 // ----------------------
@@ -70,14 +68,12 @@ Route::get('/calendar/{year}/{month}.ics', [CalendarController::class, 'ics'])
 // ----------------------
 // PUBLIC EVENTS
 // ----------------------
-/**
- * Reminder to self: List view of events for embedding and member hub links.
- */
+
+// Event list view
 Route::get('/events', [EventController::class, 'index'])
     ->name('events.index');
 
-// /events/{year}/{month}/{slug}
-// /events/{year}/{month}/{slug}.ics
+// Public event detail + ICS
 Route::get('/events/{year}/{month}/{slug}', [EventController::class, 'show'])
     ->where([
         'year'  => '[0-9]{4}',
@@ -140,4 +136,30 @@ Route::middleware('admin')->group(function () {
 
     Route::get('/admin/event-types/{id}/delete', [EventTypeAdminController::class, 'delete'])
         ->name('admin.event-types.delete');
+
+    // OPERATORS ADMIN
+    Route::get('/admin/operators', [OperatorAdminController::class, 'index'])
+        ->name('admin.operators');
+
+    Route::post('/admin/operators', [OperatorAdminController::class, 'store'])
+        ->name('admin.operators.store');
+
+    Route::put('/admin/operators/{id}', [OperatorAdminController::class, 'update'])
+        ->name('admin.operators.update');
+
+    Route::get('/admin/operators/{id}/delete', [OperatorAdminController::class, 'delete'])
+        ->name('admin.operators.delete');
+
+    // ROLES ADMIN
+    Route::get('/admin/roles', [RoleAdminController::class, 'index'])
+        ->name('admin.roles');
+
+    Route::post('/admin/roles', [RoleAdminController::class, 'store'])
+        ->name('admin.roles.store');
+
+    Route::put('/admin/roles/{id}', [RoleAdminController::class, 'update'])
+        ->name('admin.roles.update');
+
+    Route::get('/admin/roles/{id}/delete', [RoleAdminController::class, 'delete'])
+        ->name('admin.roles.delete');
 });
