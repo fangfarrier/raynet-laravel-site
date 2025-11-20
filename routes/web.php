@@ -1,6 +1,8 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+
+// Controllers
 use App\Http\Controllers\SupportRequestController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\AdminController;
@@ -10,12 +12,18 @@ use App\Http\Controllers\EventController;
 use App\Http\Controllers\MemberDashboardController;
 use App\Http\Controllers\OperatorAdminController;
 use App\Http\Controllers\RoleAdminController;
+use App\Http\Controllers\AlertStatusController;
+
 use App\Models\Event;
+use App\Models\AlertStatus;
 use Illuminate\Support\Carbon;
 
-// ----------------------
-// HOME – with next event
-// ----------------------
+/*
+|--------------------------------------------------------------------------
+| PUBLIC PAGES
+|--------------------------------------------------------------------------
+*/
+
 Route::get('/', function () {
     $today = Carbon::today();
 
@@ -23,57 +31,47 @@ Route::get('/', function () {
         ->orderBy('starts_at')
         ->get();
 
+    $alertStatus = AlertStatus::query()->first();
+
     return view('pages.home', [
         'nextEvent'   => $upcoming->first(),
         'otherEvents' => $upcoming->slice(1, 2),
+        'alertStatus' => $alertStatus,
     ]);
 })->name('home');
 
-
-// ----------------------
-// STATIC PAGES
-// ----------------------
 Route::view('/about', 'pages.about')->name('about');
 Route::view('/event-support', 'pages.event-support')->name('event-support');
 Route::view('/training', 'pages.training')->name('training');
 
-// Members dashboard now uses a controller
-Route::get('/members', MemberDashboardController::class)->name('members');
-
-
-// ----------------------
-// REQUEST SUPPORT (Form)
-// ----------------------
 Route::get('/request-support', [SupportRequestController::class, 'create'])
     ->name('request-support');
 
 Route::post('/request-support', [SupportRequestController::class, 'store'])
     ->name('request-support.submit');
 
+/*
+|--------------------------------------------------------------------------
+| CALENDAR
+|--------------------------------------------------------------------------
+*/
 
-// ----------------------
-// CALENDAR
-// ----------------------
 Route::get('/calendar/{year?}/{month?}', [CalendarController::class, 'index'])
     ->name('calendar');
 
 Route::get('/calendar/{year}/{month}.ics', [CalendarController::class, 'ics'])
-    ->where([
-        'year'  => '[0-9]{4}',
-        'month' => '[0-1][0-9]',
-    ])
+    ->where(['year'  => '[0-9]{4}', 'month' => '[0-1][0-9]'])
     ->name('calendar.ics');
 
+/*
+|--------------------------------------------------------------------------
+| PUBLIC EVENTS
+|--------------------------------------------------------------------------
+*/
 
-// ----------------------
-// PUBLIC EVENTS
-// ----------------------
-
-// Event list view
 Route::get('/events', [EventController::class, 'index'])
     ->name('events.index');
 
-// Public event detail + ICS
 Route::get('/events/{year}/{month}/{slug}', [EventController::class, 'show'])
     ->where([
         'year'  => '[0-9]{4}',
@@ -90,10 +88,29 @@ Route::get('/events/{year}/{month}/{slug}.ics', [EventController::class, 'ics'])
     ])
     ->name('events.ics');
 
+/*
+|--------------------------------------------------------------------------
+| MEMBERS (AUTH REQUIRED)
+|--------------------------------------------------------------------------
+*/
 
-// ----------------------
-// ADMIN LOGIN
-// ----------------------
+Route::middleware('auth')->group(function () {
+
+    // Members Dashboard
+    Route::get('/members', MemberDashboardController::class)
+        ->name('members');
+
+    // Password change form
+    Route::view('/change-password', 'auth.change-password')
+        ->name('password.change');
+});
+
+/*
+|--------------------------------------------------------------------------
+| ADMIN AREA
+|--------------------------------------------------------------------------
+*/
+
 Route::get('/admin/login', [AdminController::class, 'showLogin'])
     ->name('admin.login');
 
@@ -103,63 +120,43 @@ Route::post('/admin/login', [AdminController::class, 'login'])
 Route::post('/admin/logout', [AdminController::class, 'logout'])
     ->name('admin.logout');
 
-
-// ----------------------
-// PROTECTED ADMIN AREA
-// ----------------------
 Route::middleware('admin')->group(function () {
 
-    // Admin dashboard
     Route::get('/admin', function () {
         return view('admin.dashboard');
     })->name('admin.dashboard');
 
-    // EVENT ADMIN
-    Route::get('/admin/events', [EventAdminController::class, 'index'])
-        ->name('admin.events');
+    Route::post('/admin/alert-status', [AlertStatusController::class, 'update'])
+        ->name('admin.alert-status.update');
 
-    Route::post('/admin/events', [EventAdminController::class, 'store'])
-        ->name('admin.events.store');
+    // Event Management
+    Route::get('/admin/events', [EventAdminController::class, 'index'])->name('admin.events');
+    Route::post('/admin/events', [EventAdminController::class, 'store'])->name('admin.events.store');
+    Route::get('/admin/events/{id}/delete', [EventAdminController::class, 'delete'])->name('admin.events.delete');
 
-    Route::get('/admin/events/{id}/delete', [EventAdminController::class, 'delete'])
-        ->name('admin.events.delete');
+    // Event Types
+    Route::get('/admin/event-types', [EventTypeAdminController::class, 'index'])->name('admin.event-types');
+    Route::post('/admin/event-types', [EventTypeAdminController::class, 'store'])->name('admin.event-types.store');
+    Route::post('/admin/event-types/{id}', [EventTypeAdminController::class, 'update'])->name('admin.event-types.update');
+    Route::get('/admin/event-types/{id}/delete', [EventTypeAdminController::class, 'delete'])->name('admin.event-types.delete');
 
-    // EVENT TYPES ADMIN
-    Route::get('/admin/event-types', [EventTypeAdminController::class, 'index'])
-        ->name('admin.event-types');
+    // Operators
+    Route::get('/admin/operators', [OperatorAdminController::class, 'index'])->name('admin.operators');
+    Route::post('/admin/operators', [OperatorAdminController::class, 'store'])->name('admin.operators.store');
+    Route::put('/admin/operators/{id}', [OperatorAdminController::class, 'update'])->name('admin.operators.update');
+    Route::get('/admin/operators/{id}/delete', [OperatorAdminController::class, 'delete'])->name('admin.operators.delete');
 
-    Route::post('/admin/event-types', [EventTypeAdminController::class, 'store'])
-        ->name('admin.event-types.store');
-
-    Route::post('/admin/event-types/{id}', [EventTypeAdminController::class, 'update'])
-        ->name('admin.event-types.update');
-
-    Route::get('/admin/event-types/{id}/delete', [EventTypeAdminController::class, 'delete'])
-        ->name('admin.event-types.delete');
-
-    // OPERATORS ADMIN
-    Route::get('/admin/operators', [OperatorAdminController::class, 'index'])
-        ->name('admin.operators');
-
-    Route::post('/admin/operators', [OperatorAdminController::class, 'store'])
-        ->name('admin.operators.store');
-
-    Route::put('/admin/operators/{id}', [OperatorAdminController::class, 'update'])
-        ->name('admin.operators.update');
-
-    Route::get('/admin/operators/{id}/delete', [OperatorAdminController::class, 'delete'])
-        ->name('admin.operators.delete');
-
-    // ROLES ADMIN
-    Route::get('/admin/roles', [RoleAdminController::class, 'index'])
-        ->name('admin.roles');
-
-    Route::post('/admin/roles', [RoleAdminController::class, 'store'])
-        ->name('admin.roles.store');
-
-    Route::put('/admin/roles/{id}', [RoleAdminController::class, 'update'])
-        ->name('admin.roles.update');
-
-    Route::get('/admin/roles/{id}/delete', [RoleAdminController::class, 'delete'])
-        ->name('admin.roles.delete');
+    // Roles
+    Route::get('/admin/roles', [RoleAdminController::class, 'index'])->name('admin.roles');
+    Route::post('/admin/roles', [RoleAdminController::class, 'store'])->name('admin.roles.store');
+    Route::put('/admin/roles/{id}', [RoleAdminController::class, 'update'])->name('admin.roles.update');
+    Route::get('/admin/roles/{id}/delete', [RoleAdminController::class, 'delete'])->name('admin.roles.delete');
 });
+
+/*
+|--------------------------------------------------------------------------
+| BREEZE / FORTIFY AUTH ROUTES
+|--------------------------------------------------------------------------
+*/
+
+require __DIR__ . '/auth.php';

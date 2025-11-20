@@ -27,14 +27,27 @@
                 >
             </div>
 
-            {{-- Text overlay --}}
+            {{-- Text + STATUS CARD row --}}
             <div style="padding: 1.6rem 1.8rem 1.8rem 1.8rem; display:flex; flex-wrap:wrap; gap:1.75rem; align-items:flex-start;">
+
+                {{-- Status card (left column) --}}
+                <div style="flex: 0 0 280px; max-width: 320px;">
+                    @include('partials.alert-status-card', ['alertStatus' => $alertStatus ?? null])
+                </div>
+
+                {{-- Main hero text (right column) --}}
                 <div style="flex: 1 1 260px; min-width: 0;">
-                    <p style="text-transform:uppercase; letter-spacing:0.18em; font-size:0.7rem; color:#a5b4fc; margin:0 0 0.45rem;">
-                        Zone 10 · Merseyside · Group 179
-                    </p>
+                   <p style="
+                         text-transform:uppercase;
+                         letter-spacing:0.18em;
+                         font-size:0.7rem;
+                         color:#a5b4fc;
+                          margin:0.4rem 0 1.58rem;   /* ⬅ moves it DOWN */
+                      ">
+                         Zone 10 · Merseyside · Group 179
+                       </p>
                     <h1 style="font-size:1.9rem; line-height:1.2; margin:0 0 0.75rem; color:#e5e7eb;">
-                        Volunteer emergency communications for Liverpool & Merseyside
+                        Volunteer emergency communications for Liverpool &amp; Merseyside
                     </h1>
                     <p style="margin:0; color:#cbd5f5; font-size:0.95rem; line-height:1.6;">
                         Liverpool RAYNET supports blue-light services, local authorities and event organisers
@@ -60,26 +73,6 @@
                     </div>
                 </div>
 
-                {{-- Quick status panel --}}
-                <div style="
-                    flex: 0 0 260px;
-                    max-width: 280px;
-                    background: rgba(15,23,42,0.92);
-                    border-radius: 1rem;
-                    border: 1px solid rgba(148,163,184,0.5);
-                    padding: 1rem 1.1rem;
-                    font-size:0.85rem;
-                    color:#e5e7eb;
-                ">
-                    <p style="margin:0 0 0.5rem; font-weight:600; color:#bfdbfe;">Current readiness</p>
-                    <p style="margin:0 0 0.3rem;">🟢 Net status: <strong>Routine monitoring</strong></p>
-                    <p style="margin:0 0 0.3rem;">📡 Primary ops: <strong>2m / 70cm FM, DMR, HF</strong></p>
-                    <p style="margin:0 0 0.3rem;">🌐 Coverage: <strong>Liverpool & wider Merseyside</strong></p>
-                    <p style="margin:0.45rem 0 0; color:#9ca3af;">
-                        For urgent multi-agency support, please contact via your
-                        local resilience lead or duty controller.
-                    </p>
-                </div>
             </div>
         </div>
     </section>
@@ -168,26 +161,26 @@
 
                     {{-- Actions --}}
                     <div style="margin-top:0.9rem; display:flex; flex-wrap:wrap; gap:0.6rem;">
-    <a href="{{ $nextEvent->url() }}"
-       style="padding:0.4rem 1rem; border-radius:999px;
-              border:1px solid rgba(56,189,248,0.9);
-              color:#e5e7eb; text-decoration:none; font-size:0.85rem;">
-        View event details
-    </a>
+                        <a href="{{ $nextEvent->url() }}"
+                           style="padding:0.4rem 1rem; border-radius:999px;
+                                  border:1px solid rgba(56,189,248,0.9);
+                                  color:#e5e7eb; text-decoration:none; font-size:0.85rem;">
+                            View event details
+                        </a>
 
-    @if ($nextEvent->slug)
-        <a href="{{ route('events.ics', [
-                    'year'  => $nextEvent->starts_at->format('Y'),
-                    'month' => $nextEvent->starts_at->format('m'),
-                    'slug'  => $nextEvent->slug,
-                ]) }}"
-           style="padding:0.4rem 1rem; border-radius:999px;
-                  border:1px solid rgba(148,163,184,0.7);
-                  color:#cbd5f5; text-decoration:none; font-size:0.85rem;">
-            Add to calendar (.ics)
-        </a>
-    @endif
-</div>
+                        @if ($nextEvent->slug)
+                            <a href="{{ route('events.ics', [
+                                        'year'  => $nextEvent->starts_at->format('Y'),
+                                        'month' => $nextEvent->starts_at->format('m'),
+                                        'slug'  => $nextEvent->slug,
+                                    ]) }}"
+                               style="padding:0.4rem 1rem; border-radius:999px;
+                                      border:1px solid rgba(148,163,184,0.7);
+                                      color:#cbd5f5; text-decoration:none; font-size:0.85rem;">
+                                Add to calendar (.ics)
+                            </a>
+                        @endif
+                    </div>
                 </article>
 
                 {{-- OTHER UPCOMING (up to 2) --}}
@@ -300,7 +293,7 @@
                 color:#e5e7eb;
             ">
                 <p style="margin:0 0 0.4rem; font-size:1.5rem;">📻</p>
-                <h3 style="margin:0 0 0.35rem; font-size:0.98rem;">Training & resilience</h3>
+                <h3 style="margin:0 0 0.35rem; font-size:0.98rem;">Training &amp; resilience</h3>
                 <p style="margin:0; color:#9ca3af;">
                     Our volunteers train regularly in radio procedure, mapping, power, and JESIP-aligned
                     working so we’re useful on day one.

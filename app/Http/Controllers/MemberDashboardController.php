@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Event;
 use App\Models\Operator;
 use App\Models\Role;
+use App\Models\AlertStatus;
 use Illuminate\Support\Carbon;
 
 class MemberDashboardController extends Controller
@@ -14,7 +15,7 @@ class MemberDashboardController extends Controller
      */
     public function __invoke()
     {
-        // I want a small slice of upcoming events so this page always feels alive
+        // Small slice of upcoming events so this page always feels alive
         $upcoming = Event::with('type')
             ->where('starts_at', '>=', Carbon::today()->startOfDay())
             ->orderBy('starts_at')
@@ -28,7 +29,7 @@ class MemberDashboardController extends Controller
 
         $roleModel = null;
         if ($operatorModel && $operatorModel->role) {
-            // I’m matching role text on the operator to the defined role list
+            // Match role text on the operator to the defined role list
             $roleModel = Role::where('name', $operatorModel->role)->first();
         }
 
@@ -83,12 +84,16 @@ class MemberDashboardController extends Controller
             'backend_url'   => 'https://backend.liverpool.ray-net.uk', // placeholder
         ];
 
+        // NEW: current global alert status for banner/footer + members card
+        $alertStatus = AlertStatus::query()->first();
+
         return view('pages.members', compact(
             'upcoming',
             'operator',
             'trainingLinks',
             'resources',
-            'opsSystems'
+            'opsSystems',
+            'alertStatus'
         ));
     }
 }

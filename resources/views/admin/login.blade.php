@@ -3,33 +3,90 @@
 @section('title', 'Admin Login')
 
 @section('content')
-    <h1>Admin login</h1>
+    <div style="max-width: 420px; margin: 0 auto;">
+        <h1 style="font-size: 1.3rem; margin-bottom: 0.25rem;">Admin login</h1>
+        <p style="font-size: 0.85rem; color: #9ca3af; margin-bottom: 1rem;">
+            Restricted access for Liverpool RAYNET controllers and administrators.
+            Use your email address or callsign plus password.
+        </p>
 
-    <p style="color:#9ca3af; max-width:32rem; margin-top:0.5rem;">
-        This area is for Liverpool RAYNET officers to manage the events calendar.
-    </p>
+        @if ($errors->has('login'))
+            <div style="
+                padding: 0.6rem 0.8rem;
+                border-radius: 0.5rem;
+                background: rgba(220, 38, 38, 0.12);
+                border: 1px solid rgba(248, 113, 113, 0.6);
+                color: #fecaca;
+                font-size: 0.85rem;
+                margin-bottom: 0.9rem;
+            ">
+                {{ $errors->first('login') }}
+            </div>
+        @endif
 
-    @if ($errors->any())
-        <div style="margin-top:0.75rem; padding:0.75rem 1rem; border-radius:0.5rem;
-                    border:1px solid rgba(248,113,113,0.8); background:rgba(127,29,29,0.8); color:#fecaca;">
-            {{ $errors->first() }}
-        </div>
-    @endif
+        <form method="POST" action="{{ route('admin.login.submit') }}" style="display: flex; flex-direction: column; gap: 0.75rem;">
+            @csrf
 
-    <form method="post" action="{{ route('admin.login.submit') }}" style="margin-top:1.25rem; max-width:20rem;">
-        @csrf
+            <div>
+                <label for="login" style="display:block; font-size:0.85rem; margin-bottom:0.25rem;">
+                    Email or callsign
+                </label>
+                <input
+                    id="login"
+                    name="login"
+                    type="text"
+                    value="{{ old('login') }}"
+                    required
+                    autofocus
+                    style="
+                        width: 100%;
+                        padding: 0.45rem 0.55rem;
+                        border-radius: 0.35rem;
+                        border: 1px solid #4b5563;
+                        background: #020617;
+                        color: #e5e7eb;
+                    "
+                >
+            </div>
 
-        <label for="password" style="display:block; font-size:0.9rem; margin-bottom:0.25rem;">
-            Admin password
-        </label>
-        <input id="password" name="password" type="password"
-               style="width:100%; padding:0.45rem; border-radius:0.4rem;
-                      border:1px solid rgba(148,163,184,0.7); background:#020617; color:#e5e7eb;">
+            <div>
+                <label for="password" style="display:block; font-size:0.85rem; margin-bottom:0.25rem;">
+                    Password
+                </label>
+                <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    required
+                    style="
+                        width: 100%;
+                        padding: 0.45rem 0.55rem;
+                        border-radius: 0.35rem;
+                        border: 1px solid #4b5563;
+                        background: #020617;
+                        color: #e5e7eb;
+                    "
+                >
+            </div>
 
-        <button type="submit"
-                style="margin-top:0.9rem; padding:0.45rem 1.1rem; border-radius:999px;
-                       border:1px solid rgba(56,189,248,0.9); background:#020617; color:#e5e7eb;">
-            Log in
-        </button>
-    </form>
+            <button type="submit" style="
+                margin-top: 0.5rem;
+                padding: 0.5rem 0.75rem;
+                border-radius: 999px;
+                border: none;
+                background: linear-gradient(to right, #4f46e5, #7c3aed);
+                color: white;
+                font-weight: 600;
+                font-size: 0.9rem;
+                cursor: pointer;
+            ">
+                Sign in
+            </button>
+        </form>
+
+        <p style="margin-top: 0.9rem; font-size: 0.75rem; color: #6b7280;">
+            Access is limited to designated Liverpool RAYNET officers.
+            All activity may be logged for governance and audit.
+        </p>
+    </div>
 @endsection
