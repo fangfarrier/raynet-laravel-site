@@ -9,7 +9,7 @@ return new class extends Migration
     /**
      * Add an is_admin flag to operators.
      *
-     * Note:
+     * Note to self
      * - This mirrors the behaviour expected by OperatorAdminController
      *   and MemberDashboardController (which orders by is_admin).
      */
