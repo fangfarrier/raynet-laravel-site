@@ -2,11 +2,9 @@
 
 namespace App\Http\Requests\Auth;
 
-use App\Models\User;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -14,7 +12,7 @@ use Illuminate\Validation\ValidationException;
 class LoginRequest extends FormRequest
 {
     /**
-     * Determine if the user is authorised to make this request.
+     * Everyone can hit the login form.
      */
     public function authorize(): bool
     {
@@ -22,79 +20,64 @@ class LoginRequest extends FormRequest
     }
 
     /**
-     * Validation rules.
+     * Validation rules for the login form.
      *
-     * NOTE: We keep the input field name as "email" for compatibility
-     * with the existing login blade, but it can now contain either an
-     * email address OR a callsign.
+     * NOTE:
+     * - The field on the form is still called "email"
+     *   but the label says "Email address or callsign".
      */
     public function rules(): array
     {
         return [
-            'email'    => ['required', 'string'], // no longer enforcing "email" format
+            'email'    => ['required', 'string'], // email OR callsign
             'password' => ['required', 'string'],
         ];
     }
 
     /**
-     * Attempt to authenticate the request's credentials.
-     *
-     * Allows login by email OR callsign, case-insensitive.
+     * Attempt authentication using either email OR callsign,
+     * based on what the user typed into the "email" box.
      */
     public function authenticate(): void
     {
         $this->ensureIsNotRateLimited();
 
-        $login    = strtolower((string) $this->input('email'));   // email OR callsign, lowercased
-        $password = (string) $this->input('password');
+        // What the user actually typed in the login box
+        $login = $this->input('email');
 
-        // Try to find user by email OR callsign (both case-insensitive)
-        $user = User::query()
-            ->whereRaw('lower(email) = ?', [$login])
-            ->orWhereRaw('lower(callsign) = ?', [$login])
-            ->first();
+        // Work out whether it's an email or a callsign
+        $field = filter_var($login, FILTER_VALIDATE_EMAIL)
+            ? 'email'
+            : 'callsign';
 
-        // If no user or password mismatch, fail + increment rate limiter
-        if (! $user || ! Hash::check($password, $user->password)) {
+        // Build the credentials array for Auth::attempt
+        $credentials = [
+            $field     => $login,
+            'password' => $this->input('password'),
+        ];
+
+        // "Remember me" checkbox
+        $remember = $this->boolean('remember');
+
+        if (! Auth::attempt($credentials, $remember)) {
             RateLimiter::hit($this->throttleKey());
 
+            // Attach the error message to the "email" field so the
+            // red bar appears where you'd expect on the form.
             throw ValidationException::withMessages([
-                'email' => __('These credentials do not match our records.'),
+                'email' => trans('auth.failed'),
             ]);
         }
-
-        // Successful login
-        Auth::login($user, $this->boolean('remember'));
 
         RateLimiter::clear($this->throttleKey());
     }
 
     /**
-     * Ensure the login request is not rate limited.
-     */
-    public function ensureIsNotRateLimited(): void
-    {
-        if (! RateLimiter::tooManyAttempts($this->throttleKey(), 5)) {
-            return;
-        }
-
-        event(new Lockout($this));
-
-        $seconds = RateLimiter::availableIn($this->throttleKey());
-
-        throw ValidationException::withMessages([
-            'email' => trans('auth.throttle', [
-                'seconds' => $seconds,
-                'minutes' => ceil($seconds / 60),
-            ]),
-        ]);
-    }
-
-    /**
-     * Get the rate limiting throttle key for the request.
+     * Throttle key – same as Laravel’s default, but we still
+     * treat it as "email" for the purposes of rate limiting.
      */
     public function throttleKey(): string
     {
-        return Str::transliterate(Str::lower($this->input('email')) . '|' . $this->ip());
+        return Str::lower($this->input('email')) . '|' . $this->ip();
     }
 }

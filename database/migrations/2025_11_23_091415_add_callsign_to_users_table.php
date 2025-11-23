@@ -12,7 +12,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            //
+            // Add a nullable callsign after email.
+            // Adjust placement if you prefer a different order.
+            if (! Schema::hasColumn('users', 'callsign')) {
+                $table->string('callsign', 32)->nullable()->after('email');
+            }
         });
     }
 
@@ -22,7 +26,9 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            //
+            if (Schema::hasColumn('users', 'callsign')) {
+                $table->dropColumn('callsign');
+            }
         });
     }
 };
