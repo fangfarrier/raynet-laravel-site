@@ -10,19 +10,19 @@
             Use your email address or callsign plus password.
         </p>
 
-        @if ($errors->has('login'))
-            <div style="
-                padding: 0.6rem 0.8rem;
-                border-radius: 0.5rem;
-                background: rgba(220, 38, 38, 0.12);
-                border: 1px solid rgba(248, 113, 113, 0.6);
-                color: #fecaca;
-                font-size: 0.85rem;
-                margin-bottom: 0.9rem;
-            ">
-                {{ $errors->first('login') }}
-            </div>
-        @endif
+       @if ($errors->any())
+    <div style="
+        padding: 0.6rem 0.8rem;
+        border-radius: 0.5rem;
+        background: rgba(220, 38, 38, 0.12);
+        border: 1px solid rgba(248, 113, 113, 0.6);
+        color: #fecaca;
+        font-size: 0.85rem;
+        margin-bottom: 0.9rem;
+    ">
+        {{ $errors->first() ?? 'Login problem – please check your details and try again.' }}
+    </div>
+@endif
 
         <form method="POST" action="{{ route('admin.login.submit') }}" style="display: flex; flex-direction: column; gap: 0.75rem;">
             @csrf

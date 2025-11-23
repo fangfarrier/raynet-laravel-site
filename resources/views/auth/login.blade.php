@@ -32,7 +32,7 @@
                 font-size:0.8rem;
                 color:#fee2e2;
             ">
-                {{ $errors->first('login') ?? 'Login problem – please check your details and try again.' }}
+           {{ $errors->first() ?? 'Login problem – please check your details and try again.' }}
             </div>
         @endif
 

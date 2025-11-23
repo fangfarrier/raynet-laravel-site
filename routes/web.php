@@ -166,7 +166,8 @@ Route::middleware('auth')->group(function () {
 | - Middleware 'admin' should check is_admin on the user (already set up).
 */
 
-Route::get('/admin/login', [AdminController::class, 'showLogin'])
+// ⬇⬇⬇ FIXED: point to showLoginForm() which actually exists
+Route::get('/admin/login', [AdminController::class, 'showLoginForm'])
     ->name('admin.login');
 
 Route::post('/admin/login', [AdminController::class, 'login'])

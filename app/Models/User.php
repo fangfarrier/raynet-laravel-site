@@ -19,7 +19,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'callsign',
+        'callsign',   // added this line so mass assignment works
     ];
 
     /**

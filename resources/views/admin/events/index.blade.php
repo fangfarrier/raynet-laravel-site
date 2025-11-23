@@ -21,6 +21,14 @@
             </button>
         </form>
     </div>
+<p style="margin:0 0 0.6rem; font-size:0.85rem;">
+    <a href="{{ route('admin.events.export.csv') }}" style="color:#93c5fd; text-decoration:none; margin-right:1rem;">
+        Export events (CSV) →
+    </a>
+    <a href="{{ route('admin.events.import') }}" style="color:#a7f3d0; text-decoration:none;">
+        Import events from CSV →
+    </a>
+</p>
 
     @if (session('status'))
         <div style="margin-top:0.9rem; padding:0.75rem 1rem; border-radius:0.5rem;

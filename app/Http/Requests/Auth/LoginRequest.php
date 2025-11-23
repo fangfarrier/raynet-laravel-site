@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Models\User;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
@@ -12,7 +13,7 @@ use Illuminate\Validation\ValidationException;
 class LoginRequest extends FormRequest
 {
     /**
-     * Everyone can hit the login form.
+     * Anyone can hit the login form.
      */
     public function authorize(): bool
     {
@@ -20,52 +21,56 @@ class LoginRequest extends FormRequest
     }
 
     /**
-     * Validation rules for the login form.
-     *
-     * NOTE:
-     * - The field on the form is still called "email"
-     *   but the label says "Email address or callsign".
+     * We validate `login` (email or callsign) plus `password`.
      */
     public function rules(): array
     {
         return [
-            'email'    => ['required', 'string'], // email OR callsign
+            'login'    => ['required', 'string'],
             'password' => ['required', 'string'],
         ];
     }
 
     /**
-     * Attempt authentication using either email OR callsign,
-     * based on what the user typed into the "email" box.
+     * Attempt authentication using email OR callsign.
      */
     public function authenticate(): void
     {
         $this->ensureIsNotRateLimited();
 
-        // What the user actually typed in the login box
-        $login = $this->input('email');
+        $login    = trim($this->input('login'));
+        $password = $this->input('password');
 
-        // Work out whether it's an email or a callsign
-        $field = filter_var($login, FILTER_VALIDATE_EMAIL)
-            ? 'email'
-            : 'callsign';
-
-        // Build the credentials array for Auth::attempt
         $credentials = [
-            $field     => $login,
-            'password' => $this->input('password'),
+            'password' => $password,
         ];
 
-        // "Remember me" checkbox
-        $remember = $this->boolean('remember');
+        if (str_contains($login, '@')) {
+            // Treat as email address
+            $credentials['email'] = $login;
+        } else {
+            // Treat as callsign (case-insensitive)
+            $upper = Str::upper($login);
 
-        if (! Auth::attempt($credentials, $remember)) {
+            $user = User::whereRaw('UPPER(callsign) = ?', [$upper])->first();
+
+            if (! $user) {
+                RateLimiter::hit($this->throttleKey());
+
+                throw ValidationException::withMessages([
+                    'login' => trans('auth.failed'),
+                ]);
+            }
+
+            // Auth::attempt still wants an email/password pair
+            $credentials['email'] = $user->email;
+        }
+
+        if (! Auth::attempt($credentials, $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
 
-            // Attach the error message to the "email" field so the
-            // red bar appears where you'd expect on the form.
             throw ValidationException::withMessages([
-                'email' => trans('auth.failed'),
+                'login' => trans('auth.failed'),
             ]);
         }
 
@@ -73,11 +78,31 @@ class LoginRequest extends FormRequest
     }
 
     /**
-     * Throttle key – same as Laravel’s default, but we still
-     * treat it as "email" for the purposes of rate limiting.
+     * Same as the default Breeze logic, but keyed on `login`.
+     */
+    public function ensureIsNotRateLimited(): void
+    {
+        if (! RateLimiter::tooManyAttempts($this->throttleKey(), 5)) {
+            return;
+        }
+
+        event(new Lockout($this));
+
+        $seconds = RateLimiter::availableIn($this->throttleKey());
+
+        throw ValidationException::withMessages([
+            'login' => trans('auth.throttle', [
+                'seconds' => $seconds,
+                'minutes' => ceil($seconds / 60),
+            ]),
+        ]);
+    }
+
+    /**
+     * Use the login value (email or callsign) + IP as the throttle key.
      */
     public function throttleKey(): string
     {
-        return Str::lower($this->input('email')) . '|' . $this->ip();
+        return Str::lower($this->input('login')) . '|' . $this->ip();
     }
 }
