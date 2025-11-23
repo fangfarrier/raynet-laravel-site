@@ -15,6 +15,15 @@ class MemberDashboardController extends Controller
      */
     public function __invoke()
     {
+        // Load SignalSafe propagation brief from public/Condx/propagation-brief.json
+        $condx = null;
+        $path  = public_path('Condx/propagation-brief.json');
+
+        if (file_exists($path)) {
+            $json  = file_get_contents($path);
+            $condx = json_decode($json, true);
+        }
+
         // Small slice of upcoming events so this page always feels alive
         $upcoming = Event::with('type')
             ->where('starts_at', '>=', Carbon::today()->startOfDay())
@@ -84,16 +93,17 @@ class MemberDashboardController extends Controller
             'backend_url'   => 'https://backend.liverpool.ray-net.uk', // placeholder
         ];
 
-        // NEW: current global alert status for banner/footer + members card
+        // Current global alert status for banner/footer + members card
         $alertStatus = AlertStatus::query()->first();
 
-        return view('pages.members', compact(
-            'upcoming',
-            'operator',
-            'trainingLinks',
-            'resources',
-            'opsSystems',
-            'alertStatus'
-        ));
+        return view('pages.members', [
+            'upcoming'      => $upcoming,
+            'operator'      => $operator,
+            'trainingLinks' => $trainingLinks,
+            'resources'     => $resources,
+            'opsSystems'    => $opsSystems,
+            'alertStatus'   => $alertStatus,
+            'condx'         => $condx,   // <-- now passed to the view
+        ]);
     }
 }

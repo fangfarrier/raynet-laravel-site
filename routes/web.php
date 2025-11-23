@@ -23,6 +23,17 @@ use Illuminate\Support\Carbon;
 | PUBLIC PAGES
 |--------------------------------------------------------------------------
 */
+Route::get('/', function () {
+    // ... your existing home route
+})->name('home');
+
+Route::view('/about', 'pages.about')->name('about');
+Route::view('/event-support', 'pages.event-support')->name('event-support');
+Route::view('/training', 'pages.training')->name('training');
+
+// ADD THESE TWO LINES HERE
+Route::view('/data-dashboard', 'data-dashboard')->name('data-dashboard');
+Route::view('/propagation', 'data-dashboard')->name('propagation'); // optional nice alias
 
 Route::get('/', function () {
     $today = Carbon::today();

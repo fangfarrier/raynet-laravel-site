@@ -10,18 +10,18 @@ class MembersController extends Controller
     /**
      * Reminder to self: Members' hub – show upcoming events and useful links.
      */
-    public function index()
-    {
-        $today = Carbon::today();
+    public function __invoke()
+{
+    $condx = null;
+    $path = public_path('Condx/propagation-brief.json');
 
-        $upcoming = Event::with('type')
-            ->where('starts_at', '>=', $today->startOfDay())
-            ->orderBy('starts_at')
-            ->limit(6)
-            ->get();
-
-        return view('pages.members', [
-            'upcoming' => $upcoming,
-        ]);
+    if (file_exists($path)) {
+        $json = file_get_contents($path);
+        $condx = json_decode($json, true);
     }
+
+    return view('pages.members-public', [
+        'condx' => $condx,
+    ]);
+}
 }

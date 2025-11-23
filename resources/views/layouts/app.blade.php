@@ -188,13 +188,20 @@
             </div>
 
             <div class="nav-links">
-                <a href="{{ route('home') }}" class="{{ request()->routeIs('home') ? 'active' : '' }}">Home</a>
-                <a href="{{ route('about') }}" class="{{ request()->routeIs('about') ? 'active' : '' }}">About</a>
-                <a href="{{ route('event-support') }}" class="{{ request()->routeIs('event-support') ? 'active' : '' }}">Event Support</a>
-                <a href="{{ route('request-support') }}" class="{{ request()->routeIs('request-support') ? 'active' : '' }}">Request Support</a>
-                <a href="{{ route('training') }}" class="{{ request()->routeIs('training') ? 'active' : '' }}">Training</a>
-                <a href="{{ route('members') }}" class="{{ request()->routeIs('members') ? 'active' : '' }}">Members</a>
-            </div>
+    <a href="{{ route('home') }}" class="{{ request()->routeIs('home') ? 'active' : '' }}">Home</a>
+    <a href="{{ route('about') }}" class="{{ request()->routeIs('about') ? 'active' : '' }}">About</a>
+    <a href="{{ route('event-support') }}" class="{{ request()->routeIs('event-support') ? 'active' : '' }}">Event Support</a>
+    <a href="{{ route('request-support') }}" class="{{ request()->routeIs('request-support') ? 'active' : '' }}">Request Support</a>
+    <a href="{{ route('training') }}" class="{{ request()->routeIs('training') ? 'active' : '' }}">Training</a>
+    
+    {{-- NEW: Data Dashboard link – looks perfect in your style --}}
+    <a href="{{ route('data-dashboard') }}" 
+       class="{{ request()->routeIs('data-dashboard') ? 'active' : '' }}">
+        Data Dashboard
+    </a>
+
+    <a href="{{ route('members') }}" class="{{ request()->routeIs('members') ? 'active' : '' }}">Members</a>
+</div>
         </div>
     </nav>
 

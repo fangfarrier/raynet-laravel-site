@@ -378,7 +378,82 @@
                     Change my password →
                 </a>
             </p>
-        </article>
+                </article>
+
+        {{-- UK Propagation Brief (SignalSafe) --}}
+        @if ($condx)
+            <article style="
+                border-radius:1rem;
+                border:1px solid rgba(56,189,248,0.6);
+                background: radial-gradient(circle at top left,#020617,#020617 60%,#020617 100%);
+                padding:0.9rem 1rem 0.9rem;
+                font-size:0.85rem;
+                color:#e5e7eb;
+            ">
+                <header style="
+                    display:flex;
+                    justify-content:space-between;
+                    align-items:flex-start;
+                    gap:0.75rem;
+                    margin-bottom:0.45rem;
+                ">
+                    <div>
+                        <h2 style="
+                            margin:0 0 0.25rem;
+                            font-size:0.87rem;
+                            letter-spacing:0.16em;
+                            text-transform:uppercase;
+                            color:#7dd3fc;
+                        ">
+                            UK Propagation Brief
+                        </h2>
+                        <p style="margin:0; font-size:0.78rem; color:#9ca3af;">
+                            {{ $condx['date'] ?? '' }} · Confidence: {{ $condx['confidence'] ?? 'Unknown' }}
+                        </p>
+                    </div>
+                    <span style="
+                        display:inline-flex;
+                        align-items:center;
+                        padding:0.25rem 0.75rem;
+                        border-radius:999px;
+                        background:rgba(56,189,248,0.16);
+                        border:1px solid rgba(56,189,248,0.7);
+                        font-size:0.7rem;
+                        font-weight:600;
+                        letter-spacing:0.08em;
+                        text-transform:uppercase;
+                        color:#e0f2fe;
+                    ">
+                        Live HF / VHF condx
+                    </span>
+                </header>
+
+                <div style="font-size:0.85rem; line-height:1.5; color:#e5e7eb;">
+                    {!! $condx['brief_html'] ?? '' !!}
+                </div>
+
+                <p style="margin:0.5rem 0 0; font-size:0.7rem; color:#64748b;">
+                    Updated {{ $condx['updated_at'] ?? '' }} · Source: SignalSafe / NOAA / Met Office / PropQuest.
+                </p>
+            </article>
+        @else
+            <article style="
+                border-radius:1rem;
+                border:1px solid rgba(148,163,184,0.5);
+                background: rgba(15,23,42,0.96);
+                padding:0.9rem 1rem 0.9rem;
+                font-size:0.85rem;
+                color:#9ca3af;
+            ">
+                <h2 style="margin:0 0 0.4rem; font-size:0.95rem; color:#e5e7eb;">
+                    UK Propagation Brief
+                </h2>
+                <p style="margin:0; font-size:0.8rem;">
+                    Today’s propagation brief is not available yet. This panel will show the latest HF / VHF conditions
+                    once the daily generator has run.
+                </p>
+            </article>
+        @endif
 
         {{-- Back-end & Ops Board hooks --}}
         <article style="
