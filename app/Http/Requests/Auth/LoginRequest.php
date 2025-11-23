@@ -2,80 +2,75 @@
 
 namespace App\Http\Requests\Auth;
 
-use App\Models\Operator;
+use App\Models\User;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class LoginRequest extends FormRequest
 {
+    /**
+     * Determine if the user is authorised to make this request.
+     */
     public function authorize(): bool
     {
-        // Login is open to guests
         return true;
     }
 
+    /**
+     * Validation rules.
+     *
+     * NOTE: We keep the input field name as "email" for compatibility
+     * with the existing login blade, but it can now contain either an
+     * email address OR a callsign.
+     */
     public function rules(): array
     {
         return [
-            // Single field for either email OR callsign
-            'login'    => ['required', 'string'],
+            'email'    => ['required', 'string'], // no longer enforcing "email" format
             'password' => ['required', 'string'],
         ];
     }
 
     /**
-     * Perform the actual authentication attempt.
+     * Attempt to authenticate the request's credentials.
+     *
+     * Allows login by email OR callsign, case-insensitive.
      */
     public function authenticate(): void
     {
         $this->ensureIsNotRateLimited();
 
-        $login    = trim((string) $this->input('login'));
+        $login    = strtolower((string) $this->input('email'));   // email OR callsign, lowercased
         $password = (string) $this->input('password');
 
-        // Decide whether this is an email or a callsign
-        if (filter_var($login, FILTER_VALIDATE_EMAIL)) {
-            // Email login
-            $credentials = [
-                'email'    => $login,
-                'password' => $password,
-            ];
-        } else {
-            // Treat as callsign – look up operator, grab their email
-            $operator = Operator::whereRaw('upper(callsign) = ?', [strtoupper($login)])->first();
+        // Try to find user by email OR callsign (both case-insensitive)
+        $user = User::query()
+            ->whereRaw('lower(email) = ?', [$login])
+            ->orWhereRaw('lower(callsign) = ?', [$login])
+            ->first();
 
-            if (! $operator || empty($operator->email)) {
-                RateLimiter::hit($this->throttleKey());
-
-                throw ValidationException::withMessages([
-                    'login' => trans('auth.failed'),
-                ]);
-            }
-
-            $credentials = [
-                'email'    => $operator->email,
-                'password' => $password,
-            ];
-        }
-
-        // Attempt login against users table
-        if (! Auth::attempt($credentials, $this->boolean('remember'))) {
+        // If no user or password mismatch, fail + increment rate limiter
+        if (! $user || ! Hash::check($password, $user->password)) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
-                'login' => trans('auth.failed'),
+                'email' => __('These credentials do not match our records.'),
             ]);
         }
+
+        // Successful login
+        Auth::login($user, $this->boolean('remember'));
 
         RateLimiter::clear($this->throttleKey());
     }
 
     /**
-     * Basic rate limiting – same as Breeze default, but keyed on 'login'.
+     * Ensure the login request is not rate limited.
      */
     public function ensureIsNotRateLimited(): void
     {
@@ -88,15 +83,18 @@ class LoginRequest extends FormRequest
         $seconds = RateLimiter::availableIn($this->throttleKey());
 
         throw ValidationException::withMessages([
-            'login' => trans('auth.throttle', [
+            'email' => trans('auth.throttle', [
                 'seconds' => $seconds,
                 'minutes' => ceil($seconds / 60),
             ]),
         ]);
     }
 
+    /**
+     * Get the rate limiting throttle key for the request.
+     */
     public function throttleKey(): string
     {
-        return Str::lower($this->input('login')).'|'.$this->ip();
+        return Str::transliterate(Str::lower($this->input('email')) . '|' . $this->ip());
     }
 }

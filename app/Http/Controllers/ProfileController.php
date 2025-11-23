@@ -2,59 +2,81 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\ProfileUpdateRequest;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Redirect;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
+use Illuminate\Support\Facades\Auth;
 
 class ProfileController extends Controller
 {
     /**
-     * Display the user's profile form.
+     * Show the "My profile" page for the currently logged-in user.
+     *
+     * Note to self:
+     * - This uses $request->user() (same as Auth::user()).
+     * - The route is protected by 'auth' middleware, so only logged-in members see it.
      */
     public function edit(Request $request): View
     {
-        return view('profile.edit', [
-            'user' => $request->user(),
-        ]);
-    }
-
-    /**
-     * Update the user's profile information.
-     */
-    public function update(ProfileUpdateRequest $request): RedirectResponse
-    {
-        $request->user()->fill($request->validated());
-
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
-        }
-
-        $request->user()->save();
-
-        return Redirect::route('profile.edit')->with('status', 'profile-updated');
-    }
-
-    /**
-     * Delete the user's account.
-     */
-    public function destroy(Request $request): RedirectResponse
-    {
-        $request->validateWithBag('userDeletion', [
-            'password' => ['required', 'current_password'],
-        ]);
-
+        // Grab the current authenticated user
         $user = $request->user();
 
-        Auth::logout();
+        return view('profile.edit', [
+            'user' => $user,
+        ]);
+    }
 
-        $user->delete();
+    /**
+     * Handle profile updates (name + callsign).
+     *
+     * Note to self:
+     * - Callsign is:
+     *      - optional (nullable)
+     *      - must match /^[A-Z0-9\/]{3,10}$/i
+     *      - unique across all users (db + validation)
+     * - We normalise callsigns to UPPERCASE before saving.
+     */
+    public function update(Request $request): RedirectResponse
+    {
+        $user = $request->user();
 
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
+        // Validation rules for profile fields
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
 
-        return Redirect::to('/');
+            // Callsign is optional, regex enforced, and must be unique
+            'callsign' => [
+                'nullable',
+                'string',
+                'max:10',
+                // Accept A–Z, 0–9 and /, 3–10 chars, case-insensitive
+                'regex:/^[A-Z0-9\/]{3,10}$/i',
+                // Unique in users table, but ignore this user’s own row
+                'unique:users,callsign,' . $user->id,
+            ],
+        ], [
+            // Nice readable error messages for callsign
+            'callsign.regex'   => 'Callsign must be 3–10 characters of letters, numbers or "/".',
+            'callsign.unique'  => 'That callsign is already in use by another account.',
+        ]);
+
+        // Normalise callsign to uppercase (if present)
+        $callsign = $validated['callsign'] ?? null;
+        if (!empty($callsign)) {
+            $validated['callsign'] = strtoupper($callsign);
+        }
+
+        // Update the user in the database
+        $user->fill([
+            'name'     => $validated['name'],
+            'callsign' => $validated['callsign'] ?? null,
+        ]);
+
+        $user->save();
+
+        // Redirect back to /profile with a success flash message
+        return redirect()
+            ->route('profile.edit')
+            ->with('status', 'Profile updated successfully.');
     }
 }

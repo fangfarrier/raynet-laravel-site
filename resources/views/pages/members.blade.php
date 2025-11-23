@@ -45,19 +45,24 @@
                 gap:0.5rem;
                 align-items:center;
             ">
-                {{-- Operator status pill --}}
-                <div style="
-                    min-width: 230px;
-                    border-radius: 999px;
-                    padding: 0.45rem 0.9rem;
-                    background: radial-gradient(circle at top left,#1d4ed8,#020617);
-                    border: 1px solid rgba(59,130,246,0.9);
-                    font-size: 0.78rem;
-                    color:#e5e7eb;
-                    display:flex;
-                    align-items:center;
-                    gap:0.5rem;
-                ">
+                {{-- Operator profile/status pill
+                     NOTE: this whole pill is now a link to "My profile" (profile.edit route) --}}
+                <a href="{{ route('profile.edit') }}"
+                   style="
+                        min-width: 230px;
+                        border-radius: 999px;
+                        padding: 0.45rem 0.9rem;
+                        background: radial-gradient(circle at top left,#1d4ed8,#020617);
+                        border: 1px solid rgba(59,130,246,0.9);
+                        font-size: 0.78rem;
+                        color:#e5e7eb;
+                        display:flex;
+                        align-items:center;
+                        gap:0.5rem;
+                        text-decoration:none;
+                        box-shadow: 0 16px 35px rgba(15,23,42,0.9);
+                   "
+                   title="View and edit my profile">
                     {{-- Active dot --}}
                     <div style="
                         width: 9px;
@@ -100,8 +105,13 @@
                                 {{ $operator['role'] ?? 'Role' }}
                             </span>
                         @endif
+
+                        {{-- Subtle hint to the user that this is clickable --}}
+                        <span style="margin-top:0.18rem; font-size:0.7rem; color:#cbd5f5;">
+                            Click to edit my profile
+                        </span>
                     </div>
-                </div>
+                </a>
             </div>
         </div>
     </section>
@@ -342,7 +352,7 @@
         </div>
     </section>
 
-    {{-- ROW 2 – resources and back-end systems (unchanged) --}}
+    {{-- ROW 2 – resources and back-end systems --}}
     <section style="display:grid; grid-template-columns:2fr 2fr; gap:1.2rem;">
         {{-- Resources & systems --}}
         <article style="
@@ -369,93 +379,55 @@
                 @endforeach
             </ul>
 
-            <p style="margin:0; font-size:0.78rem; color:#6b7280;">
-                Over time I can swap these static links for real integrations – shared drives, document systems
-                and live dashboards.
-             <p style="margin:0 0 0.4rem; font-size:0.8rem;">
+            <p style="margin:0 0 0.4rem; font-size:0.8rem;">
                 <a href="{{ route('password.change') }}"
                    style="color:#38bdf8; text-decoration:none;">
                     Change my password →
                 </a>
             </p>
-                </article>
 
-        {{-- UK Propagation Brief (SignalSafe) --}}
-        @if ($condx)
-            <article style="
-                border-radius:1rem;
-                border:1px solid rgba(56,189,248,0.6);
-                background: radial-gradient(circle at top left,#020617,#020617 60%,#020617 100%);
-                padding:0.9rem 1rem 0.9rem;
-                font-size:0.85rem;
-                color:#e5e7eb;
-            ">
-                <header style="
-                    display:flex;
-                    justify-content:space-between;
-                    align-items:flex-start;
-                    gap:0.75rem;
-                    margin-bottom:0.45rem;
-                ">
+            <p style="margin:0; font-size:0.78rem; color:#6b7280;">
+                Over time I can swap these static links for real integrations – shared drives, document systems
+                and live dashboards.
+            </p>
+        </article>
+
+        {{-- Propagation brief card (SignalSafe / Condx) --}}
+        @if($condx)
+            <section
+                class="mt-0 rounded-xl border border-sky-500/40 bg-slate-900/70 px-5 py-4 shadow-md shadow-sky-900/40">
+                <header class="flex items-center justify-between gap-3 mb-2">
                     <div>
-                        <h2 style="
-                            margin:0 0 0.25rem;
-                            font-size:0.87rem;
-                            letter-spacing:0.16em;
-                            text-transform:uppercase;
-                            color:#7dd3fc;
-                        ">
+                        <h2 class="text-sm font-semibold tracking-wide text-sky-300 uppercase">
                             UK Propagation Brief
                         </h2>
-                        <p style="margin:0; font-size:0.78rem; color:#9ca3af;">
+                        <p class="text-xs text-slate-400">
                             {{ $condx['date'] ?? '' }} · Confidence: {{ $condx['confidence'] ?? 'Unknown' }}
                         </p>
                     </div>
-                    <span style="
-                        display:inline-flex;
-                        align-items:center;
-                        padding:0.25rem 0.75rem;
-                        border-radius:999px;
-                        background:rgba(56,189,248,0.16);
-                        border:1px solid rgba(56,189,248,0.7);
-                        font-size:0.7rem;
-                        font-weight:600;
-                        letter-spacing:0.08em;
-                        text-transform:uppercase;
-                        color:#e0f2fe;
-                    ">
-                        Live HF / VHF condx
+                    <span class="inline-flex items-center rounded-full bg-sky-700/40 px-3 py-1 text-[0.7rem] font-semibold text-sky-100">
+                        Live HF / VHF Condx
                     </span>
                 </header>
 
-                <div style="font-size:0.85rem; line-height:1.5; color:#e5e7eb;">
+                <div class="text-sm leading-relaxed text-slate-100 space-y-1">
                     {!! $condx['brief_html'] ?? '' !!}
                 </div>
 
-                <p style="margin:0.5rem 0 0; font-size:0.7rem; color:#64748b;">
+                <p class="mt-3 text-[0.7rem] text-slate-500">
                     Updated {{ $condx['updated_at'] ?? '' }} · Source: SignalSafe / NOAA / Met Office / PropQuest.
                 </p>
-            </article>
+            </section>
         @else
-            <article style="
-                border-radius:1rem;
-                border:1px solid rgba(148,163,184,0.5);
-                background: rgba(15,23,42,0.96);
-                padding:0.9rem 1rem 0.9rem;
-                font-size:0.85rem;
-                color:#9ca3af;
-            ">
-                <h2 style="margin:0 0 0.4rem; font-size:0.95rem; color:#e5e7eb;">
-                    UK Propagation Brief
-                </h2>
-                <p style="margin:0; font-size:0.8rem;">
-                    Today’s propagation brief is not available yet. This panel will show the latest HF / VHF conditions
-                    once the daily generator has run.
-                </p>
-            </article>
+            <section
+                class="mt-0 rounded-xl border border-slate-700 bg-slate-900/70 px-5 py-4 text-sm text-slate-400">
+                Today’s propagation brief is not available yet. Please check back later.
+            </section>
         @endif
+    </section>
 
-        {{-- Back-end & Ops Board hooks --}}
+    {{-- ROW 3 – Back-end & Ops Board hooks --}}
+    <section style="margin-top:1.2rem;">
         <article style="
             border-radius:1rem;
             border:1px solid rgba(148,163,184,0.5);

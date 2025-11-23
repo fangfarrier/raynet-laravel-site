@@ -2,25 +2,28 @@
 
 namespace App\Models;
 
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable;
+    use HasFactory;
+    use Notifiable;
 
     /**
-     * Mass assignable attributes.
+     * The attributes that are mass assignable.
      */
     protected $fillable = [
         'name',
         'email',
         'password',
+        'callsign',
     ];
 
     /**
-     * Hidden fields on arrays / JSON.
+     * The attributes that should be hidden for serialization.
      */
     protected $hidden = [
         'password',
@@ -28,14 +31,12 @@ class User extends Authenticatable
     ];
 
     /**
-     * Attribute casts.
-     *
-     * These are important for password expiry + force reset.
+     * The attributes that should be cast.
      */
     protected $casts = [
         'email_verified_at'   => 'datetime',
-        'password'            => 'hashed',    // Laravel will hash automatically on assign
-        'password_changed_at' => 'datetime',  // so ->lt() works
+        'password'            => 'hashed',
+        'password_changed_at' => 'datetime',
         'force_password_reset'=> 'boolean',
     ];
 }
