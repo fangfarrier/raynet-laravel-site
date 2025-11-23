@@ -186,28 +186,101 @@ Route::middleware('admin')->group(function () {
     Route::post('/admin/alert-status', [AlertStatusController::class, 'update'])
         ->name('admin.alert-status.update');
 
-    // Event Management
-    Route::get('/admin/events', [EventAdminController::class, 'index'])->name('admin.events');
-    Route::post('/admin/events', [EventAdminController::class, 'store'])->name('admin.events.store');
-    Route::get('/admin/events/{id}/delete', [EventAdminController::class, 'delete'])->name('admin.events.delete');
+    /*
+    |--------------------------------------------------------------------------
+    | EVENT MANAGEMENT (ADMIN)
+    |--------------------------------------------------------------------------
+    | Note to self:
+    | - index/store/delete were already there.
+    | - I've added a clean export CSV route and a pair of import routes.
+    | - Avoid duplicate route names or duplicate URIs here.
+    */
 
-    // Event Types
-    Route::get('/admin/event-types', [EventTypeAdminController::class, 'index'])->name('admin.event-types');
-    Route::post('/admin/event-types', [EventTypeAdminController::class, 'store'])->name('admin.event-types.store');
-    Route::post('/admin/event-types/{id}', [EventTypeAdminController::class, 'update'])->name('admin.event-types.update');
-    Route::get('/admin/event-types/{id}/delete', [EventTypeAdminController::class, 'delete'])->name('admin.event-types.delete');
+    // List + create events
+    Route::get('/admin/events', [EventAdminController::class, 'index'])
+        ->name('admin.events');
 
-    // Operators
-    Route::get('/admin/operators', [OperatorAdminController::class, 'index'])->name('admin.operators');
-    Route::post('/admin/operators', [OperatorAdminController::class, 'store'])->name('admin.operators.store');
-    Route::put('/admin/operators/{id}', [OperatorAdminController::class, 'update'])->name('admin.operators.update');
-    Route::get('/admin/operators/{id}/delete', [OperatorAdminController::class, 'delete'])->name('admin.operators.delete');
+    Route::post('/admin/events', [EventAdminController::class, 'store'])
+        ->name('admin.events.store');
 
-    // Roles
-    Route::get('/admin/roles', [RoleAdminController::class, 'index'])->name('admin.roles');
-    Route::post('/admin/roles', [RoleAdminController::class, 'store'])->name('admin.roles.store');
-    Route::put('/admin/roles/{id}', [RoleAdminController::class, 'update'])->name('admin.roles.update');
-    Route::get('/admin/roles/{id}/delete', [RoleAdminController::class, 'delete'])->name('admin.roles.delete');
+    // Soft delete / remove event
+    Route::get('/admin/events/{id}/delete', [EventAdminController::class, 'delete'])
+        ->name('admin.events.delete');
+
+    // Export all events to CSV (backup)
+    // Used by the "Export all events" button on the admin list.
+    Route::get(
+        '/admin/events/export/csv',
+        [EventAdminController::class, 'exportCsv']
+    )->name('admin.events.export.csv');
+
+    // Import events from CSV:
+    // - GET  = show the upload form
+    // - POST = process the uploaded CSV
+    // Blade form uses route('admin.events.import.process') for the POST.
+    Route::get(
+        '/admin/events/import',
+        [EventAdminController::class, 'showImportForm']
+    )->name('admin.events.import');
+
+    Route::post(
+        '/admin/events/import',
+        [EventAdminController::class, 'import']
+    )->name('admin.events.import.process');
+
+    /*
+    |--------------------------------------------------------------------------
+    | EVENT TYPES
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get('/admin/event-types', [EventTypeAdminController::class, 'index'])
+        ->name('admin.event-types');
+
+    Route::post('/admin/event-types', [EventTypeAdminController::class, 'store'])
+        ->name('admin.event-types.store');
+
+    Route::post('/admin/event-types/{id}', [EventTypeAdminController::class, 'update'])
+        ->name('admin.event-types.update');
+
+    Route::get('/admin/event-types/{id}/delete', [EventTypeAdminController::class, 'delete'])
+        ->name('admin.event-types.delete');
+
+    /*
+    |--------------------------------------------------------------------------
+    | OPERATORS
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get('/admin/operators', [OperatorAdminController::class, 'index'])
+        ->name('admin.operators');
+
+    Route::post('/admin/operators', [OperatorAdminController::class, 'store'])
+        ->name('admin.operators.store');
+
+    Route::put('/admin/operators/{id}', [OperatorAdminController::class, 'update'])
+        ->name('admin.operators.update');
+
+    Route::get('/admin/operators/{id}/delete', [OperatorAdminController::class, 'delete'])
+        ->name('admin.operators.delete');
+
+    /*
+    |--------------------------------------------------------------------------
+    | ROLES
+    |--------------------------------------------------------------------------
+    */
+
+    Route::get('/admin/roles', [RoleAdminController::class, 'index'])
+        ->name('admin.roles');
+
+    Route::post('/admin/roles', [RoleAdminController::class, 'store'])
+        ->name('admin.roles.store');
+
+    Route::put('/admin/roles/{id}', [RoleAdminController::class, 'update'])
+        ->name('admin.roles.update');
+
+    Route::get('/admin/roles/{id}/delete', [RoleAdminController::class, 'delete'])
+        ->name('admin.roles.delete');
 });
 
 /*
