@@ -157,11 +157,16 @@ Route::middleware('auth')->group(function () {
         ->name('password.change');
 
     // My profile – user can change their name + callsign (with validation)
-    Route::get('/profile', [ProfileController::class, 'edit'])
-        ->name('profile.edit');
+    // My profile page – GET shows the form
+Route::get('/profile', [ProfileController::class, 'edit'])
+    ->name('profile.edit');
 
-    Route::post('/profile', [ProfileController::class, 'update'])
-        ->name('profile.update');
+// NOTE TO FUTURE ME:
+// - My profile update form uses @method('patch')
+// - Therefore this route MUST also be PATCH, not POST.
+// - When these mismatch, Laravel throws "405 Method Not Allowed".
+Route::patch('/profile', [ProfileController::class, 'update'])
+    ->name('profile.update');
 });
 
 /*

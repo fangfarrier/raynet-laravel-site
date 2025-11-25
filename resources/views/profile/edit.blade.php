@@ -5,10 +5,10 @@
 @section('content')
 
     @php
-        // Short-hands for the view, so we don’t keep typing $user->...
+        // Short-hands for the view, so I don’t keep typing $user->...
         /** @var \App\Models\User $user */
-        $userName    = $user->name;
-        $userEmail   = $user->email;
+        $userName     = $user->name;
+        $userEmail    = $user->email;
         $userCallsign = $user->callsign;
     @endphp
 
@@ -80,8 +80,13 @@
                 These details are used across the members’ hub, event rosters and training systems.
             </p>
 
+            {{-- NOTE TO FUTURE ME:
+               - This form now updates name, email and callsign.
+               - Route is PATCH /profile (see web.php), hence @method('patch').
+            --}}
             <form method="POST" action="{{ route('profile.update') }}" style="margin-top:0.4rem;">
                 @csrf
+                @method('patch')
 
                 {{-- Name --}}
                 <div style="margin-bottom:0.7rem;">
@@ -109,33 +114,41 @@
                     </p>
                 </div>
 
-                {{-- Email (read-only for now) --}}
+                {{-- Email (now editable, previously disabled) --}}
+                {{-- NOTE TO FUTURE ME:
+                   - Must have name="email" or the controller never sees it.
+                   - We use old('email', ...) so validation errors keep the user's input.
+                --}}
                 <div style="margin-bottom:0.7rem;">
                     <label for="email" style="display:block; font-size:0.82rem; margin-bottom:0.15rem;">
                         Email address
                     </label>
                     <input
                         id="email"
+                        name="email"
                         type="email"
-                        value="{{ $userEmail }}"
-                        disabled
+                        value="{{ old('email', $userEmail) }}"
+                        required
                         style="
                             width:100%;
                             padding:0.45rem 0.55rem;
                             border-radius:0.6rem;
-                            border:1px dashed rgba(148,163,184,0.5);
+                            border:1px solid rgba(148,163,184,0.7);
                             background:#020617;
-                            color:#9ca3af;
+                            color:#e5e7eb;
                             font-size:0.9rem;
-                            opacity:0.85;
                         "
                     >
                     <p style="margin:0.2rem 0 0; font-size:0.75rem; color:#6b7280;">
-                        Login email is managed by an administrator for now.
+                        This is your login email. Changing it may trigger re-verification.
                     </p>
                 </div>
 
                 {{-- Callsign --}}
+                {{-- NOTE TO FUTURE ME:
+                   - Callsign is optional but recommended.
+                   - Validation pattern is enforced in ProfileUpdateRequest.
+                --}}
                 <div style="margin-bottom:0.9rem;">
                     <label for="callsign" style="display:block; font-size:0.82rem; margin-bottom:0.15rem;">
                         Callsign

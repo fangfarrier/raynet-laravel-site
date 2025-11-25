@@ -5,15 +5,22 @@ namespace App\Http\Controllers;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+// NOTE TO FUTURE ME:
+// - I’m using Artisan here so the dashboard can auto-generate a fresh
+//   Condx brief if today’s JSON/MD files do not exist or are stale.
+use Illuminate\Support\Facades\Artisan;
 
 class CondxDashboardController extends Controller
 {
     /**
      * Show the UK Propagation Brief + live-ish sliders.
      *
-     * - Reads latest Markdown brief → $condxHtml
-     * - Reads latest JSON payload   → numeric values
-     * - Derives slider positions as percentages 0–100
+     * Flow:
+     *  - Work out which Markdown file to show (latest.md or fallback).
+     *  - Load the newest JSON payload from storage/app/condx.
+     *  - If there's no JSON or it's older than today, trigger
+     *    php artisan condx:generate once, then re-scan.
+     *  - Derive numeric values + slider positions from that JSON.
      */
     public function show()
     {
@@ -22,9 +29,13 @@ class CondxDashboardController extends Controller
         // ------------------------------------------------------------------
         $latestMarkdownPath = $this->resolveLatestMarkdownPath();
 
-        if ($latestMarkdownPath) {
+        if ($latestMarkdownPath && Storage::exists($latestMarkdownPath)) {
             $markdown = Storage::get($latestMarkdownPath);
         } else {
+            // NOTE TO FUTURE ME:
+            // - This is the "no brief available" fallback.
+            // - In normal operation, condx:generate should mean we almost
+            //   never hit this branch.
             $markdown = <<<MD
 # UK Propagation Brief
 
@@ -36,16 +47,17 @@ MD;
 
         // ------------------------------------------------------------------
         // 2) JSON: newest *.json file in storage/app/condx
+        //    (with self-healing: will run condx:generate if missing/stale)
         // ------------------------------------------------------------------
         [$data, $generatedDate] = $this->loadLatestJsonData();
 
         // Safe defaults if JSON missing or partially missing
-        $sfi        = $data['sfi']            ?? 110;
-        $kpRange    = $data['kp_range']       ?? '1–2';
-        $mufLow     = $data['muf_low']        ?? 12;
-        $mufHigh    = $data['muf_high']       ?? 16;
-        $mufPeak    = $data['muf_peak']       ?? (($mufLow + $mufHigh) / 2);
-        $confidence = $data['confidence']     ?? 'Medium';
+        $sfi        = $data['sfi']        ?? 110;
+        $kpRange    = $data['kp_range']   ?? '1–2';
+        $mufLow     = $data['muf_low']    ?? 12;
+        $mufHigh    = $data['muf_high']   ?? 16;
+        $mufPeak    = $data['muf_peak']   ?? (($mufLow + $mufHigh) / 2);
+        $confidence = $data['confidence'] ?? 'Medium';
 
         // ------------------------------------------------------------------
         // 3) Derive compact values and slider positions (0–100%)
@@ -81,16 +93,16 @@ MD;
         // 4) Pass everything to the view
         // ------------------------------------------------------------------
         return view('data-dashboard', [
-            // Main brief
-            'condxHtml'  => $condxHtml,
+            // Main brief (Markdown rendered as HTML)
+            'condxHtml'      => $condxHtml,
 
             // Raw values
-            'sfi'        => $sfi,
-            'kpValue'    => $kpValue,
-            'mufDisplay' => $mufDisplay,
-            'confidence' => $confidence,
-            'auroraLevel'=> $auroraLevel,
-            'generatedDate' => $generatedDate,
+            'sfi'            => $sfi,
+            'kpValue'        => $kpValue,
+            'mufDisplay'     => $mufDisplay,
+            'confidence'     => $confidence,
+            'auroraLevel'    => $auroraLevel,
+            'generatedDate'  => $generatedDate,
 
             // Slider pointer positions (percent 0–100)
             'auroraPointerPercent'     => $auroraPointerPercent,
@@ -113,14 +125,18 @@ MD;
      */
     protected function resolveLatestMarkdownPath(): ?string
     {
+        // NOTE TO FUTURE ME:
+        // - GenerateCondxBrief writes condx/latest.md as the primary target.
         if (Storage::exists('condx/latest.md')) {
             return 'condx/latest.md';
         }
 
+        // Legacy fallback name from earlier experiments
         if (Storage::exists('condx/uk-brief-latest.md')) {
             return 'condx/uk-brief-latest.md';
         }
 
+        // Otherwise, grab the newest Markdown file in condx/
         $mdFiles = collect(Storage::files('condx'))
             ->filter(fn ($path) => str_ends_with($path, '.md'))
             ->sort()
@@ -133,26 +149,78 @@ MD;
     // Helper: load latest JSON and return [dataArray, Carbon $date]
     // =====================================================================
 
+    /**
+     * Load the latest JSON file under storage/app/condx.
+     *
+     * Self-healing behaviour:
+     *  - If there are no JSON files at all, I call `condx:generate` once,
+     *    then re-scan the folder.
+     *  - If the newest JSON file is older than today, I call `condx:generate`
+     *    once, then re-scan again.
+     *  - If after that there's still nothing usable, I return [], today().
+     */
     protected function loadLatestJsonData(): array
     {
-        $jsonFiles = collect(Storage::files('condx'))
-            ->filter(fn ($path) => str_ends_with($path, '.json'))
-            ->sort()
-            ->values();
+        $today = now()->startOfDay();
+
+        // Internal helper closure to avoid repeating the listing logic.
+        $scanJson = function () {
+            return collect(Storage::files('condx'))
+                ->filter(fn ($path) => str_ends_with($path, '.json'))
+                ->sort()
+                ->values();
+        };
+
+        // First scan
+        $jsonFiles = $scanJson();
 
         if ($jsonFiles->isEmpty()) {
-            // No JSON at all – return empty data + "today" as date
-            return [[], now()->startOfDay()];
+            // NOTE TO FUTURE ME:
+            // - No JSON yet: try to auto-generate today's brief.
+            // - This calls the same artisan command I'd run from CLI:
+            //     php artisan condx:generate
+            Artisan::call('condx:generate');
+
+            // Re-scan after generation
+            $jsonFiles = $scanJson();
+
+            if ($jsonFiles->isEmpty()) {
+                // Still nothing → give up gracefully and use defaults.
+                return [[], $today];
+            }
         }
 
+        // At this point, we have at least one JSON file.
         $latestJsonPath = $jsonFiles->last();
-        $raw            = Storage::get($latestJsonPath);
+        $base           = basename($latestJsonPath, '.json');
 
+        // Try to parse the YYYY-MM-DD from the filename
+        try {
+            $date = Carbon::parse($base)->startOfDay();
+        } catch (\Throwable $e) {
+            // If parsing fails, treat it as "today" for display purposes.
+            $date = $today;
+        }
+
+        // If the date embedded in the filename is older than today, attempt
+        // one regeneration and re-scan.
+        if ($date->lt($today)) {
+            Artisan::call('condx:generate');
+
+            $jsonFiles       = $scanJson();
+            $latestJsonPath  = $jsonFiles->last();
+            $base            = basename($latestJsonPath, '.json');
+
+            try {
+                $date = Carbon::parse($base)->startOfDay();
+            } catch (\Throwable $e) {
+                $date = $today;
+            }
+        }
+
+        // At this point we have a "best effort" latest JSON file.
+        $raw  = Storage::get($latestJsonPath);
         $data = json_decode($raw, true) ?? [];
-
-        // File name is condx/YYYY-MM-DD.json, pull the date out of it
-        $base      = basename($latestJsonPath, '.json');
-        $date      = Carbon::parse($base)->startOfDay();
 
         return [$data, $date];
     }

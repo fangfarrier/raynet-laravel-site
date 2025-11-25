@@ -4,79 +4,642 @@
 
 @section('content')
 
-    @php
-        /** @var \App\Models\AlertStatus|null $alertStatus */
-        $alertStatus   = \App\Models\AlertStatus::query()->first();
-        $alertMeta     = $alertStatus?->meta();
-        $currentLevel  = $alertStatus->level ?? 5;
-        $currentColour = $alertMeta['colour'] ?? '#22c55e';
+@php
+    /**
+     * NOTE TO FUTURE ME:
+     * I still pull the global alert status here because this page may
+     * later show a “current Merseyside alert level” strip alongside Condx.
+     */
+    $alertStatus   = \App\Models\AlertStatus::query()->first();
+    $alertMeta     = $alertStatus?->meta();
+    $currentLevel  = $alertStatus->level ?? 5;
+    $currentColour = $alertMeta['colour'] ?? '#22c55e';
 
-        // Text colour tweak for readability (esp. Level 3 yellow)
-        $textColour = '#020617';
-        if (in_array($currentLevel, [1, 2, 4], true)) {
-            $textColour = '#0b1120';
-        }
-    @endphp
+    // Tweak text contrast on any banner that might use this later.
+    $textColour = '#020617';
+    if (in_array($currentLevel, [1, 2, 4], true)) {
+        $textColour = '#0b1120';
+    }
+@endphp
 
-    {{-- PAGE HEADER --}}
-    <section style="margin-top:1.5rem; margin-bottom:1.5rem;">
-        <div style="
-            display:flex;
-            flex-wrap:wrap;
-            justify-content:space-between;
-            align-items:flex-end;
-            gap:0.75rem;
-        ">
-            <div>
-                <h1 style="margin:0 0 0.3rem;">Live Propagation Brief</h1>
-                <p style="margin:0; font-size:0.9rem; color:#9ca3af;">
-                    Daily UK propagation brief and local Merseyside status, plus the global alert level used across the site.
-                </p>
-            </div>
-        </div>
-    </section>
-
-    
-    {{-- FULL-WIDTH: Daily Propagation Brief Card --}}
-    <section style="
-        margin-top:1.5rem;
-        border-radius:0.75rem;
-        border:1px solid rgba(148,163,184,0.4);
-        padding:1rem 1.4rem;
-        background:#020617;
+{{-- ============================================================
+   PAGE HEADER
+   ============================================================ --}}
+<section style="margin-top:1.5rem; margin-bottom:1.5rem;">
+    <div style="
+        display:flex;
+        flex-wrap:wrap;
+        justify-content:space-between;
+        align-items:flex-end;
+        gap:0.75rem;
     ">
-        <h2 style="margin:0 0 0.6rem; font-size:1rem;">UK Propagation Brief — 2025-11-23</h2>
-
-        <div style="font-size:0.88rem; line-height:1.55; color:#e5e7eb;">
-
-            <p><strong>Solar/Geo:</strong> SFI about 121 sfu, sunspot count ~51. Kp currently ~2–3, forecast for next 24 h Quiet-Unsettled (Kp max ~3-4). Solar wind speed ~400–450 km/s, Bz weak and variable. Radio blackout risk: Low.<br>
-            <em>Implication:</em> HF propagation mostly normal; no major enhancements.</p>
-
-            <p><strong>HF (1.8–30 MHz):</strong> Recent ionosonde/MUF charts suggest MUF(3000 km) over UK ~15-18 MHz, peak around 17 MHz. Best daytime bands: 20 m (~14 MHz) and 17 m (~18 MHz) for UK⇄near-Europe. Evening: 40 m (~7 MHz) and 60 m (~5.3 MHz) good for NVIS. D-layer absorption low. Notable path: UK⇄EI/GM/GI on 20 m midday. NVIS window ~08:00-11:00 UTC.</p>
-
-            <p><strong>VHF/UHF (50/70/144/432):</strong> Tropo/ducting outlook: Low — no high-pressure ridge flagged over UK. Sporadic-E: Very low (off-season). Auroral voice/data: unlikely (Kp < 4). Aircraft scatter/RS: Standard background, no special window.</p>
-
-            <p><strong>Digital & Specials:</strong> MSK144 meteor scatter – no major shower peaks today. FT8/FT4: 20 m/17 m midday remain best for EU short-path. Satellite/contests: No major alerts or special event passes affecting today.</p>
-
-            <p><strong>Liverpool/Merseyside Micro-Note:</strong> For Zone 10 (NW England) your best NVIS window is 40 m around 08:30-10:30 local and 60 m from ~14:30-17:30 local; 2 m/70 cm tropo or aurora to EI/GM or North Wales remains negligible today — rely HF.</p>
-
-            <p><strong>Actionable Notes:</strong><br>
-            • Try 40 m NVIS ~08:00-11:00 UTC for intra-UK nets.<br>
-            • Use 20 m/17 m ~12:00-16:00 UTC for UK⇄near-Europe links.<br>
-            • Standby 60 m from ~14:00-18:00 UTC for regional fallback.<br>
-            • Do not count on sporadic-E or strong tropo openings today.<br>
-            • Monitor Kp — if it rises to ≥4 then consider 144 MHz auroral/long-haul options.
+        <div>
+            <h1 style="margin:0 0 0.3rem;">Live Propagation Brief</h1>
+            <p style="margin:0; font-size:0.9rem; color:#9ca3af;">
+                Automatically generated UK-wide propagation brief from live space-weather feeds.
             </p>
-
-            <p><strong>Confidence:</strong> Medium — UK space-weather and MUF indicators align reasonably, but foF2/MUF data are inferred rather than directly measured for all paths.</p>
-
-            <p style="font-size:0.78rem; color:#9ca3af; margin-top:1rem;">
-                <strong>Sources:</strong><br>
-                • Met Office Space Weather forecast: <a href="https://weather.metoffice.gov.uk/specialist-forecasts/space-weather" target="_blank" style="color:#93c5fd;">weather.metoffice.gov.uk</a><br>
-                • Kp/aurora forecast: <a href="https://www.spaceweatherlive.com/en/auroral-activity/aurora-forecast.html" target="_blank" style="color:#93c5fd;">spaceweatherlive.com</a><br>
-                • MUF/ionosonde description: <a href="https://www.propquest.co.uk/about.php" target="_blank" style="color:#93c5fd;">propquest.co.uk</a>
-            </p>
-
         </div>
-    </section>
+    </div>
+</section>
+
+
+{{-- ============================================================
+   MAIN CARD: LIVE DAILY BRIEF (Markdown → HTML)
+   ============================================================ --}}
+<section style="
+    margin-top:1.5rem;
+    border-radius:0.75rem;
+    border:1px solid rgba(148,163,184,0.4);
+    padding:1rem 1.4rem;
+    background:#020617;
+">
+    {{-- The date comes from the latest JSON filename,
+         so the header stays aligned with the brief itself. --}}
+    <h2 style="margin:0 0 0.6rem; font-size:1rem;">
+        UK Propagation Brief — {{ $generatedDate->format('Y-m-d') }}
+    </h2>
+
+    {{-- Rendered Markdown for the daily brief.
+         Safe because it’s generated by our own code, not user input. --}}
+    <div style="font-size:0.88rem; line-height:1.55; color:#e5e7eb;">
+        {!! $condxHtml !!}
+    </div>
+</section>
+
+
+{{-- ============================================================
+   SLIDER CARDS: “AT-A-GLANCE” CONDX INDICATORS
+   ============================================================ --}}
+<section style="margin-top:1.5rem;">
+    <div style="
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        gap:0.75rem;
+        margin-bottom:0.6rem;
+    ">
+        <h2 style="margin:0; font-size:0.95rem; color:#e5e7eb;">
+            At-a-glance Condx indicators
+        </h2>
+        <p style="margin:0; font-size:0.78rem; color:#9ca3af;">
+            Derived from today’s JSON payload ({{ $generatedDate->format('Y-m-d') }}).
+        </p>
+    </div>
+
+    {{-- NOTE TO FUTURE ME:
+         - Two-column feel on desktop by making each card “wide enough”.
+         - auto-fit + minmax keeps things usable on mobile.
+    --}}
+    <div style="
+        display:grid;
+        grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));
+        gap:0.9rem;
+    ">
+
+        {{-- CARD: Aurora Risk (click → explanation modal) --}}
+        <article
+            role="button"
+            tabindex="0"
+            onclick="openCondxModal('aurora')"
+            onkeypress="if(event.key==='Enter' || event.key===' ') openCondxModal('aurora')"
+            style="
+                border-radius:0.75rem;
+                border:1px solid rgba(148,163,184,0.4);
+                background:#020617;
+                padding:0.75rem 0.9rem;
+                font-size:0.85rem;
+                color:#e5e7eb;
+                cursor:pointer;
+            ">
+            <div style="display:flex; justify-content:space-between; align-items:baseline; gap:0.5rem;">
+                <h3 style="margin:0; font-size:0.85rem;">Aurora risk</h3>
+                <span style="font-size:0.78rem; color:#9ca3af;">
+                    {{ $auroraLevel }}
+                </span>
+            </div>
+
+            <p style="margin:0.25rem 0 0.4rem; font-size:0.78rem; color:#9ca3af;">
+                Based on today’s average planetary Kp.
+            </p>
+
+            {{-- Slider bar --}}
+            <div style="margin-top:0.25rem;">
+                <div style="
+                    position:relative;
+                    height:12px;
+                    border-radius:999px;
+                    background:rgba(15,23,42,0.95);
+                    border:1px solid rgba(148,163,184,0.7);
+                    overflow:hidden;
+                ">
+                    {{-- Pointer --}}
+                    <div style="
+                        position:absolute;
+                        top:50%;
+                        left:{{ $auroraPointerPercent }}%;
+                        transform:translate(-50%, -50%);
+                        width:16px;
+                        height:16px;
+                        border-radius:999px;
+                        border:2px solid #e5e7eb;
+                        background:#f97316;
+                        box-shadow:0 0 0 2px rgba(15,23,42,0.95);
+                    "></div>
+                </div>
+
+                {{-- FULL NUMERIC Kp SCALE 0–9 --}}
+                <div style="
+                    display:flex;
+                    justify-content:space-between;
+                    margin-top:0.35rem;
+                    font-size:0.72rem;
+                    color:#6b7280;
+                ">
+                    <span>0</span>
+                    <span>1</span>
+                    <span>2</span>
+                    <span>3</span>
+                    <span>4</span>
+                    <span>5</span>
+                    <span>6</span>
+                    <span>7</span>
+                    <span>8</span>
+                    <span>9</span>
+                </div>
+            </div>
+        </article>
+
+        {{-- CARD: Solar Flux Index (SFI) --}}
+        <article
+            role="button"
+            tabindex="0"
+            onclick="openCondxModal('sfi')"
+            onkeypress="if(event.key==='Enter' || event.key===' ') openCondxModal('sfi')"
+            style="
+                border-radius:0.75rem;
+                border:1px solid rgba(148,163,184,0.4);
+                background:#020617;
+                padding:0.75rem 0.9rem;
+                font-size:0.85rem;
+                color:#e5e7eb;
+                cursor:pointer;
+            ">
+            <div style="display:flex; justify-content:space-between; align-items:baseline; gap:0.5rem;">
+                <h3 style="margin:0; font-size:0.85rem;">Solar Flux Index</h3>
+                <span style="font-size:0.85rem; font-weight:600;">
+                    {{ $sfi }} sfu
+                </span>
+            </div>
+
+            <p style="margin:0.25rem 0 0.4rem; font-size:0.78rem; color:#9ca3af;">
+                How energised the F-layer is; pushes the MUF up when high.
+            </p>
+
+            <div style="margin-top:0.25rem;">
+                <div style="
+                    position:relative;
+                    height:12px;
+                    border-radius:999px;
+                    background:rgba(15,23,42,0.95);
+                    border:1px solid rgba(148,163,184,0.7);
+                    overflow:hidden;
+                ">
+                    <div style="
+                        position:absolute;
+                        top:50%;
+                        left:{{ $sfiPointerPercent }}%;
+                        transform:translate(-50%, -50%);
+                        width:16px;
+                        height:16px;
+                        border-radius:999px;
+                        border:2px solid #e5e7eb;
+                        background:#22c55e;
+                        box-shadow:0 0 0 2px rgba(15,23,42,0.95);
+                    "></div>
+                </div>
+
+                {{-- DOMAIN-SPECIFIC SFI SCALE --}}
+                <div style="
+                    display:flex;
+                    justify-content:space-between;
+                    margin-top:0.35rem;
+                    font-size:0.72rem;
+                    color:#6b7280;
+                ">
+                    <span>70</span>
+                    <span>90</span>
+                    <span>120</span>
+                    <span>150</span>
+                    <span>200</span>
+                    <span>250</span>
+                    <span>300</span>
+                </div>
+            </div>
+        </article>
+
+        {{-- CARD: Planetary Kp --}}
+        <article
+            role="button"
+            tabindex="0"
+            onclick="openCondxModal('kp')"
+            onkeypress="if(event.key==='Enter' || event.key===' ') openCondxModal('kp')"
+            style="
+                border-radius:0.75rem;
+                border:1px solid rgba(148,163,184,0.4);
+                background:#020617;
+                padding:0.75rem 0.9rem;
+                font-size:0.85rem;
+                color:#e5e7eb;
+                cursor:pointer;
+            ">
+            <div style="display:flex; justify-content:space-between; align-items:baseline; gap:0.5rem;">
+                <h3 style="margin:0; font-size:0.85rem;">Planetary Kp</h3>
+                <span style="font-size:0.85rem; font-weight:600;">
+                    {{ number_format($kpValue, 1) }}
+                </span>
+            </div>
+
+            <p style="margin:0.25rem 0 0.4rem; font-size:0.78rem; color:#9ca3af;">
+                Geomagnetic activity – higher values mean more disturbance.
+            </p>
+
+            <div style="margin-top:0.25rem;">
+                <div style="
+                    position:relative;
+                    height:12px;
+                    border-radius:999px;
+                    background:rgba(15,23,42,0.95);
+                    border:1px solid rgba(148,163,184,0.7);
+                    overflow:hidden;
+                ">
+                    <div style="
+                        position:absolute;
+                        top:50%;
+                        left:{{ $kpPointerPercent }}%;
+                        transform:translate(-50%, -50%);
+                        width:16px;
+                        height:16px;
+                        border-radius:999px;
+                        border:2px solid #e5e7eb;
+                        background:#f97316;
+                        box-shadow:0 0 0 2px rgba(15,23,42,0.95);
+                    "></div>
+                </div>
+
+                {{-- FULL NUMERIC Kp SCALE 0–9 --}}
+                <div style="
+                    display:flex;
+                    justify-content:space-between;
+                    margin-top:0.35rem;
+                    font-size:0.72rem;
+                    color:#6b7280;
+                ">
+                    <span>0</span>
+                    <span>1</span>
+                    <span>2</span>
+                    <span>3</span>
+                    <span>4</span>
+                    <span>5</span>
+                    <span>6</span>
+                    <span>7</span>
+                    <span>8</span>
+                    <span>9</span>
+                </div>
+            </div>
+        </article>
+
+        {{-- CARD: MUF(3000 km) --}}
+        <article
+            role="button"
+            tabindex="0"
+            onclick="openCondxModal('muf')"
+            onkeypress="if(event.key==='Enter' || event.key===' ') openCondxModal('muf')"
+            style="
+                border-radius:0.75rem;
+                border:1px solid rgba(148,163,184,0.4);
+                background:#020617;
+                padding:0.75rem 0.9rem;
+                font-size:0.85rem;
+                color:#e5e7eb;
+                cursor:pointer;
+            ">
+            <div style="display:flex; justify-content:space-between; align-items:baseline; gap:0.5rem;">
+                <h3 style="margin:0; font-size:0.85rem;">MUF(3000 km)</h3>
+                <span style="font-size:0.85rem; font-weight:600;">
+                    {{ $mufDisplay }}
+                </span>
+            </div>
+
+            <p style="margin:0.25rem 0 0.4rem; font-size:0.78rem; color:#9ca3af;">
+                Approximate MUF over the UK for 3000&nbsp;km skywave paths.
+            </p>
+
+            <div style="margin-top:0.25rem;">
+                <div style="
+                    position:relative;
+                    height:12px;
+                    border-radius:999px;
+                    background:rgba(15,23,42,0.95);
+                    border:1px solid rgba(148,163,184,0.7);
+                    overflow:hidden;
+                ">
+                    <div style="
+                        position:absolute;
+                        top:50%;
+                        left:{{ $mufPointerPercent }}%;
+                        transform:translate(-50%, -50%);
+                        width:16px;
+                        height:16px;
+                        border-radius:999px;
+                        border:2px solid #e5e7eb;
+                        background:#3b82f6;
+                        box-shadow:0 0 0 2px rgba(15,23,42,0.95);
+                    "></div>
+                </div>
+
+                {{-- DOMAIN-SPECIFIC MUF SCALE (rough band markers) --}}
+                <div style="
+                    display:flex;
+                    justify-content:space-between;
+                    margin-top:0.35rem;
+                    font-size:0.72rem;
+                    color:#6b7280;
+                ">
+                    <span>5</span>
+                    <span>7</span>
+                    <span>10</span>
+                    <span>14</span>
+                    <span>18</span>
+                    <span>21</span>
+                    <span>28</span>
+                </div>
+            </div>
+        </article>
+
+        {{-- CARD: Forecast confidence --}}
+        <article
+            role="button"
+            tabindex="0"
+            onclick="openCondxModal('confidence')"
+            onkeypress="if(event.key==='Enter' || event.key===' ') openCondxModal('confidence')"
+            style="
+                border-radius:0.75rem;
+                border:1px solid rgba(148,163,184,0.4);
+                background:#020617;
+                padding:0.75rem 0.9rem;
+                font-size:0.85rem;
+                color:#e5e7eb;
+                cursor:pointer;
+            ">
+            <div style="display:flex; justify-content:space-between; align-items:baseline; gap:0.5rem;">
+                <h3 style="margin:0; font-size:0.85rem;">Forecast confidence</h3>
+                <span style="font-size:0.85rem; font-weight:600;">
+                    {{ $confidence }}
+                </span>
+            </div>
+
+            <p style="margin:0.25rem 0 0.4rem; font-size:0.78rem; color:#9ca3af;">
+                How well today’s inputs (Kp, SFI, MUF sources) agree.
+            </p>
+
+            <div style="margin-top:0.25rem;">
+                <div style="
+                    position:relative;
+                    height:12px;
+                    border-radius:999px;
+                    background:rgba(15,23,42,0.95);
+                    border:1px solid rgba(148,163,184,0.7);
+                    overflow:hidden;
+                ">
+                    <div style="
+                        position:absolute;
+                        top:50%;
+                        left:{{ $confidencePointerPercent }}%;
+                        transform:translate(-50%, -50%);
+                        width:16px;
+                        height:16px;
+                        border-radius:999px;
+                        border:2px solid #e5e7eb;
+                        background:#a855f7;
+                        box-shadow:0 0 0 2px rgba(15,23,42,0.95);
+                    "></div>
+                </div>
+
+                {{-- CATEGORY SCALE: HIGH / MEDIUM / LOW --}}
+                <div style="
+                    display:flex;
+                    justify-content:space-between;
+                    margin-top:0.35rem;
+                    font-size:0.72rem;
+                    color:#6b7280;
+                ">
+                    <span>High</span>
+                    <span>Medium</span>
+                    <span>Low</span>
+                </div>
+            </div>
+        </article>
+
+    </div>
+</section>
+
+
+{{-- ============================================================
+   SIMPLE MODAL FOR EXPLANATIONS
+   ============================================================ --}}
+<div id="condx-modal-backdrop" style="
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(15,23,42,0.75);
+    z-index:3000;
+    align-items:center;
+    justify-content:center;
+">
+    <div style="
+        max-width:640px;
+        width:90%;
+        max-height:80vh;
+        background:#020617;
+        border-radius:1rem;
+        border:1px solid rgba(148,163,184,0.6);
+        box-shadow:0 24px 60px rgba(0,0,0,0.7);
+        padding:1.1rem 1.3rem;
+        color:#e5e7eb;
+        overflow-y:auto;
+        font-size:0.9rem;
+    ">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.75rem;">
+            <h2 id="condx-modal-title" style="margin:0; font-size:1rem;"></h2>
+            <button type="button"
+                    onclick="closeCondxModal()"
+                    style="
+                        border:none;
+                        background:transparent;
+                        color:#9ca3af;
+                        font-size:1rem;
+                        cursor:pointer;
+                    ">
+                ✕
+            </button>
+        </div>
+        <div id="condx-modal-body" style="margin-top:0.6rem; line-height:1.55;"></div>
+    </div>
+</div>
+
+<script>
+    // NOTE TO FUTURE ME:
+    // Tiny inline modal – no dependencies, just string templates.
+
+    function openCondxModal(metric) {
+        const titleEl = document.getElementById('condx-modal-title');
+        const bodyEl  = document.getElementById('condx-modal-body');
+        const wrapEl  = document.getElementById('condx-modal-backdrop');
+
+        let title = '';
+        let body  = '';
+
+        switch (metric) {
+            case 'aurora':
+            case 'kp':
+                title = 'Kp and Aurora – Geomagnetic Stability';
+                body  = `
+                    <p><strong>Kp</strong> measures how disturbed Earth’s magnetic field is (0–9).</p>
+                    <p>Lower Kp means a more stable ionosphere, which supports steady HF paths. Higher Kp means
+                    more fading, distortion and the chance of auroral effects.</p>
+
+                    <table style="width:100%; border-collapse:collapse; font-size:0.85rem; margin:0.5rem 0;">
+                        <thead>
+                            <tr>
+                                <th style="text-align:left; padding:0.3rem; border-bottom:1px solid rgba(55,65,81,0.9);">Kp</th>
+                                <th style="text-align:left; padding:0.3rem; border-bottom:1px solid rgba(55,65,81,0.9);">What to expect</th>
+                                <th style="text-align:left; padding:0.3rem; border-bottom:1px solid rgba(55,65,81,0.9);">Operational guidance</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style="padding:0.3rem;">≤ 3</td>
+                                <td style="padding:0.3rem;">Stable ionosphere; predictable NVIS and short-haul HF.</td>
+                                <td style="padding:0.3rem;">Use 40&nbsp;m NVIS; 20&nbsp;m often open daytime.</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:0.3rem;">4–5</td>
+                                <td style="padding:0.3rem;">Noticeable fading; higher bands less reliable.</td>
+                                <td style="padding:0.3rem;">Favour 40/60&nbsp;m; confirm key links regularly.</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:0.3rem;">≥ 6</td>
+                                <td style="padding:0.3rem;">Storm conditions; HF may fail intermittently.</td>
+                                <td style="padding:0.3rem;">Drop to 80&nbsp;m NVIS or move traffic to VHF/DMR.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                `;
+                break;
+
+            case 'sfi':
+                title = 'Solar Flux Index (SFI)';
+                body  = `
+                    <p><strong>SFI</strong> is a measure of how energised the F-layer is. Higher values generally
+                    support higher maximum usable frequencies (MUF) and better performance on bands like 14–28&nbsp;MHz.</p>
+
+                    <table style="width:100%; border-collapse:collapse; font-size:0.85rem; margin:0.5rem 0;">
+                        <thead>
+                            <tr>
+                                <th style="text-align:left; padding:0.3rem; border-bottom:1px solid rgba(55,65,81,0.9);">SFI</th>
+                                <th style="text-align:left; padding:0.3rem; border-bottom:1px solid rgba(55,65,81,0.9);">Implication</th>
+                                <th style="text-align:left; padding:0.3rem; border-bottom:1px solid rgba(55,65,81,0.9);">Operational guidance</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style="padding:0.3rem;">&lt; 90</td>
+                                <td style="padding:0.3rem;">Weak F-layer.</td>
+                                <td style="padding:0.3rem;">High HF bands poor; rely on 40/80&nbsp;m NVIS or VHF relays.</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:0.3rem;">120–150</td>
+                                <td style="padding:0.3rem;">Healthy mid-range.</td>
+                                <td style="padding:0.3rem;">Good 14–28&nbsp;MHz; 20&nbsp;m daytime inter-UK / near-EU.</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:0.3rem;">&gt; 200</td>
+                                <td style="padding:0.3rem;">Strong F-layer, often with more flare risk.</td>
+                                <td style="padding:0.3rem;">Excellent high-band DX; watch for short HF blackouts.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                `;
+                break;
+
+            case 'muf':
+                title = 'MUF(3000 km) – Choosing the Right HF Band';
+                body  = `
+                    <p><strong>MUF</strong> (Maximum Usable Frequency) is the highest frequency that will refract back
+                    to Earth for a given path – here, a notional 3000&nbsp;km over the UK.</p>
+
+                    <p>We normally want to operate between the <em>Lowest Usable Frequency (LUF)</em> and MUF.
+                    If MUF is around 18&nbsp;MHz and LUF around 5&nbsp;MHz, then the practical window runs from
+                    roughly 40&nbsp;m up to 20&nbsp;m.</p>
+
+                    <p>When the LUF rises (dawn/dusk or disturbed conditions), 40&nbsp;m may become patchy and 80&nbsp;m
+                    carries more of the NVIS workload.</p>
+                `;
+                break;
+
+            case 'confidence':
+                title = 'Forecast Confidence';
+                body  = `
+                    <p>The confidence meter describes how well the different inputs agree on today’s conditions
+                    (SFI, Kp, MUF charts and space-weather forecasts).</p>
+
+                    <ul style="margin:0.4rem 0 0.2rem 1.1rem; padding:0; font-size:0.85rem;">
+                        <li><strong>High</strong> – sources broadly align; brief should be representative.</li>
+                        <li><strong>Medium</strong> – some disagreement; treat finer detail with caution.</li>
+                        <li><strong>Low</strong> – patchy or missing data; stay conservative in band/mode choices.</li>
+                    </ul>
+
+                    <p style="margin-top:0.4rem;">In practice this is a reminder to double-check key links and
+                    keep a ready fallback (e.g. lower band, VHF/DMR, or pre-agreed message routing) when confidence
+                    is not High.</p>
+                `;
+                break;
+
+            default:
+                title = 'Propagation Indicators';
+                body  = `
+                    <p>This panel summarises the main numbers that drive HF conditions:
+                    Kp (geomagnetic stability), SFI (F-layer strength), MUF (useful HF window) and a simple
+                    confidence estimate based on how well the input sources agree.</p>
+                `;
+        }
+
+        titleEl.textContent  = title;
+        bodyEl.innerHTML     = body;
+        wrapEl.style.display = 'flex';
+    }
+
+    function closeCondxModal() {
+        const wrapEl = document.getElementById('condx-modal-backdrop');
+        wrapEl.style.display = 'none';
+    }
+
+    // Close on backdrop click
+    document.addEventListener('click', function (e) {
+        const wrapEl = document.getElementById('condx-modal-backdrop');
+        if (!wrapEl || wrapEl.style.display !== 'flex') return;
+
+        if (e.target === wrapEl) {
+            closeCondxModal();
+        }
+    });
+
+    // Close on ESC key
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            closeCondxModal();
+        }
+    });
+</script>
+
 @endsection

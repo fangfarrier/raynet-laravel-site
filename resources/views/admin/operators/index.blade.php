@@ -86,7 +86,15 @@
                        style="width:100%; padding:0.4rem; border-radius:0.4rem;
                               border:1px solid rgba(148,163,184,0.7); background:#020617; color:#e5e7eb;">
             </div>
-
+            {{-- Email --}}
+<div>
+    <label style="display:block; font-size:0.85rem; margin-bottom:0.15rem;">Email *</label>
+    <input name="email" type="email"
+           value="{{ old('email', $editingOperator->email ?? '') }}"
+           placeholder="operator@example.com"
+           style="width:100%; padding:0.4rem; border-radius:0.4rem;
+                  border:1px solid rgba(148,163,184,0.7); background:#020617; color:#e5e7eb;">
+</div>
             {{-- Role (dropdown from roles admin) --}}
             <div>
                 <label style="display:block; font-size:0.85rem; margin-bottom:0.15rem;">Role</label>

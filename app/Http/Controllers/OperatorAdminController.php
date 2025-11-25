@@ -42,24 +42,46 @@ class OperatorAdminController extends Controller
      * Store a new operator.
      */
     public function store(Request $request)
-    {
-        $data = $request->validate([
-            'name'     => 'required|string|max:255',
-            'callsign' => 'nullable|string|max:50',
-            'role'     => 'nullable|string|max:255',
-            'level'    => 'nullable|string|max:50',
-            'status'   => 'required|string|max:50',
-            'is_admin' => 'nullable|boolean',
-        ]);
+{
+    $data = $request->validate([
+        'name'     => 'required|string|max:255',
+        'callsign' => 'nullable|string|max:50',
+        'email'    => 'required|email|max:255',
+        'role'     => 'nullable|string|max:255',
+        'level'    => 'nullable|string|max:50',
+        'status'   => 'required|string|max:50',
+        'is_admin' => 'nullable',
+    ]);
 
-        $data['is_admin'] = (bool) $request->boolean('is_admin');
+    $data['callsign'] = strtoupper($data['callsign'] ?? '');
+    $data['is_admin'] = $request->has('is_admin');
 
-        Operator::create($data);
+    // --- 1) Create the operator record ---
+    $operator = \App\Models\Operator::create([
+        'name'     => $data['name'],
+        'callsign' => $data['callsign'],
+        'email'    => $data['email'],   // if your Operator table has this column
+        'role'     => $data['role'],
+        'level'    => $data['level'],
+        'status'   => $data['status'],
+        'is_admin' => $data['is_admin'],
+    ]);
 
-        return redirect()
-            ->route('admin.operators')
-            ->with('status', 'Operator created.');
-    }
+    // --- 2) Create/update linked User so they can log in ---
+    $user = \App\Models\User::updateOrCreate(
+        ['email' => $data['email']],  // lookup
+        [
+            'name'     => $data['name'],
+            'callsign' => $data['callsign'],
+            'password' => \Illuminate\Support\Facades\Hash::make('TempPass123!'),
+            'is_admin' => $data['is_admin'],
+        ]
+    );
+
+    return redirect()
+        ->route('admin.operators')
+        ->with('status', 'Operator created and login account provisioned (TempPass123!).');
+}
 
     /**
      * Update an operator.

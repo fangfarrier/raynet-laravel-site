@@ -7,18 +7,20 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 use Illuminate\Support\Facades\Auth;
 
+// ✅ REQUIRED: bring in the validation rules for profile update
+use App\Http\Requests\ProfileUpdateRequest;
+
+// ✅ REQUIRED: used to sync user → operator record
+use App\Models\Operator;
+
 class ProfileController extends Controller
 {
     /**
      * Show the "My profile" page for the currently logged-in user.
-     *
-     * Note to self:
-     * - This uses $request->user() (same as Auth::user()).
-     * - The route is protected by 'auth' middleware, so only logged-in members see it.
      */
     public function edit(Request $request): View
     {
-        // Grab the current authenticated user
+        // Grab the authenticated user
         $user = $request->user();
 
         return view('profile.edit', [
@@ -27,56 +29,41 @@ class ProfileController extends Controller
     }
 
     /**
-     * Handle profile updates (name + callsign).
+     * Handle profile updates (name, email, callsign).
      *
-     * Note to self:
-     * - Callsign is:
-     *      - optional (nullable)
-     *      - must match /^[A-Z0-9\/]{3,10}$/i
-     *      - unique across all users (db + validation)
-     * - We normalise callsigns to UPPERCASE before saving.
+     * IMPORTANT:
+     * - We now allow members to change email.
+     * - This uses ProfileUpdateRequest for validation.
+     * - Callsign is synced to the Operator record.
+     * - Email changes reset email_verified_at as expected in Laravel.
      */
-    public function update(Request $request): RedirectResponse
+    public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        $user = $request->user();
+        $user     = $request->user();
+        $oldEmail = $user->email;
 
-        // Validation rules for profile fields
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
+        // Apply validated fields (name, email, callsign)
+        // fill() automatically merges only validated attributes
+        $user->fill($request->validated());
 
-            // Callsign is optional, regex enforced, and must be unique
-            'callsign' => [
-                'nullable',
-                'string',
-                'max:10',
-                // Accept A–Z, 0–9 and /, 3–10 chars, case-insensitive
-                'regex:/^[A-Z0-9\/]{3,10}$/i',
-                // Unique in users table, but ignore this user’s own row
-                'unique:users,callsign,' . $user->id,
-            ],
-        ], [
-            // Nice readable error messages for callsign
-            'callsign.regex'   => 'Callsign must be 3–10 characters of letters, numbers or "/".',
-            'callsign.unique'  => 'That callsign is already in use by another account.',
-        ]);
-
-        // Normalise callsign to uppercase (if present)
-        $callsign = $validated['callsign'] ?? null;
-        if (!empty($callsign)) {
-            $validated['callsign'] = strtoupper($callsign);
+        // If email changed → force re-verification
+        if ($user->isDirty('email')) {
+            $user->email_verified_at = null;   // reset verification
         }
-
-        // Update the user in the database
-        $user->fill([
-            'name'     => $validated['name'],
-            'callsign' => $validated['callsign'] ?? null,
-        ]);
 
         $user->save();
 
-        // Redirect back to /profile with a success flash message
-        return redirect()
-            ->route('profile.edit')
-            ->with('status', 'Profile updated successfully.');
+        // Keep Operator record in sync if one exists
+        // We match first on the OLD email then on callsign.
+        Operator::where('email', $oldEmail)
+            ->orWhere('callsign', $user->callsign)
+            ->update([
+                'name'     => $user->name,
+                'email'    => $user->email,
+                'callsign' => $user->callsign,
+            ]);
+
+        // Standard Laravel profile-updated banner
+        return back()->with('status', 'profile-updated');
     }
 }
