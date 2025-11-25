@@ -66,9 +66,16 @@ Route::view('/training', 'pages.training')->name('training');
  * - The JS card on /members is powered from the Condx JSON; this page can
  *   later show a fuller “public dashboard”.
  */
-Route::view('/data-dashboard', 'data-dashboard')->name('data-dashboard');
-Route::view('/propagation', 'data-dashboard')->name('propagation'); // nice alias URL
+use App\Http\Controllers\DataDashboardController; // make sure this is at the top
 
+// ...
+
+   use App\Http\Controllers\CondxDashboardController;
+
+// ...
+
+Route::get('/data-dashboard', [CondxDashboardController::class, 'show'])
+    ->name('data-dashboard');
 /**
  * Public-facing support request form.
  * GET  = show form
